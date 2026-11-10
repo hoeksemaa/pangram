@@ -1,18 +1,16 @@
-# Real or fake audio benchmark
+# AI speech detector
 
-A benchmark that tests how well detectors tell real audio from AI-generated audio.
+A model that listens to a voice clip and tells whether a person or an AI made it.
 
 ## Why
 
-AI audio models now make sound that people cannot tell from a real recording. A detector is only as good as the test that checks it.
-
-In October 2026, [Pangram's CEO asked for third-party AI detection benchmarks](https://x.com/max_spero_/status/2115167297937559667). He wants three things: very clean data, output from the newest models, and a test that is hard enough that most detectors do not max it out. This benchmark applies those three tests to audio.
+AI voice models now sound like real people. Detectors must keep up with each new model, and must not flag real people as AI.
 
 ## How it works
 
-1. **Real clips:** recordings made by people, each with a known source and license.
-2. **Fake clips:** audio from current AI models, matched to the real clips where possible.
-3. **Score:** each detector labels each clip real or fake. The benchmark reports how often each detector is right, for each AI model and each condition.
+1. **Data:** human speech from open corpora, and AI speech from many voice models, including clips made with current models.
+2. **Model:** a pretrained speech model turns each clip into features. A small classifier on top gives a score for "AI made this."
+3. **Test:** scores on datasets and voice models that the model never saw in training.
 
 ## Status
 

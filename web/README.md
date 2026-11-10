@@ -16,7 +16,8 @@ uv run scripts/build_site.py && cd site && vercel deploy --prod
 ```
 
 - **Features:** time, pitch, voice quality, vowels, timbre, loudness. Most come from eGeMAPS ([openSMILE](https://audeering.github.io/opensmile-python/)). Tap a feature name for what it means.
-- **Histograms:** cyan = human, red = AI. Drag to filter, tap a bar for one bin, × or double-click to clear.
-- **AUC:** how well one feature alone separates human from AI. Amber (≥ 0.75) = a possible shortcut.
+- **Colors:** blue = human, red = AI, everywhere; nothing else uses them.
+- **Histograms:** drag to filter, tap a bar for one bin, × or double-click to clear.
+- **AUC:** pick one human and one AI clip at random; AUC is the chance that one feature alone tells which is which (0.5 = no clue, 1 = always). Tap it in the app. Amber (≥ 0.75) = a possible shortcut.
 - **Keys (Data tab):** `j`/`k` next/previous · `space` play · `r` random · `f` note · `/` search · `a` autoplay · `c` chain
 - **Flags:** local server saves to `notes/flags.jsonl`; the website keeps them in the browser (export button).

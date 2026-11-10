@@ -1,9 +1,9 @@
-/* Human or AI? Night-city sci-fi in pixel type: deep navy, neon cyan, signal red, amber.
+/* Human or AI? Night-city sci-fi in pixel type: deep navy, steel, amber.
    Chunky panels with hard shadows, HUD corner marks, a little bounce.
    Mobile first; desktop (>= 900px) widens the Data tab to three columns.
 
-   One color, one meaning:
-   cyan = human · red = AI · amber = selected or action · pink = flag */
+   One color, one meaning. Blue and red mean only human and AI, everywhere:
+   blue = human · red = AI · amber = selected or action · pink = flag · all else neutral */
 :root {
   color-scheme: dark;
   --bg: #0a0f1c;
@@ -13,11 +13,11 @@
   --shadow: #03060c;
   --ink: #f1ece4;
   --ink-2: #8d9bb5;
-  --human: #35c8ff;
+  --human: #4f8bff;
   --ai: #ff3b30;
   --gold: #ffb000;
   --flag: #ff6ad5;
-  --hud: rgba(53, 200, 255, 0.55);
+  --hud: rgba(141, 155, 181, 0.5);
   --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
   --mono: "Share Tech Mono", ui-monospace, monospace; /* data: ids, numbers, readouts */
 }
@@ -34,15 +34,15 @@ body {
 body::before {
   content: ""; position: fixed; inset: 0; z-index: -2;
   background:
-    radial-gradient(55% 40% at 88% 4%, rgba(255, 59, 48, 0.22), transparent 70%),
-    radial-gradient(70% 45% at 8% 100%, rgba(53, 200, 255, 0.13), transparent 70%),
+    radial-gradient(55% 40% at 88% 4%, rgba(124, 92, 255, 0.16), transparent 70%),
+    radial-gradient(70% 45% at 8% 100%, rgba(110, 130, 170, 0.12), transparent 70%),
     linear-gradient(180deg, #0a0f1c, #0b1527);
 }
 body::after {
   content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background-image:
-    linear-gradient(rgba(53, 200, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(53, 200, 255, 0.05) 1px, transparent 1px);
+    linear-gradient(rgba(141, 155, 181, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(141, 155, 181, 0.05) 1px, transparent 1px);
   background-size: 24px 24px;
   -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 80%);
   mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 80%);
@@ -53,7 +53,7 @@ body::after {
     repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.07) 0 1px, transparent 1px 3px),
     radial-gradient(ellipse at center, transparent 62%, rgba(0, 0, 0, 0.4));
 }
-a { color: var(--human); }
+a { color: var(--ink); }
 .screen { display: none; }
 body[data-screen="model"] #model, body[data-screen="try"] #try { display: block; }
 body[data-screen="home"] #home { display: flex; flex-direction: column; min-height: 100dvh; }
@@ -108,7 +108,7 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
   border: 2px solid var(--edge); border-radius: 999px; color: var(--ink-2); font-size: 15px;
 }
 .tog input:checked + span { background: var(--gold); border-color: var(--gold); color: #1b1300; }
-.tog input:focus-visible + span { outline: 2px solid var(--human); }
+.tog input:focus-visible + span { outline: 2px solid var(--gold); }
 
 /* ---------- home button (each tab) ---------- */
 .home-btn { flex: 0 0 auto; width: 40px; padding: 0; }
@@ -123,8 +123,8 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
   text-shadow: 0 5px 0 var(--shadow);
   animation: sway 7s ease-in-out infinite;
 }
-.t-h { color: var(--human); text-shadow: -2px 0 rgba(255, 59, 48, 0.45), 0 5px 0 var(--shadow); }
-.t-a { color: var(--ai); text-shadow: 2px 0 rgba(53, 200, 255, 0.45), 0 5px 0 var(--shadow); }
+.t-h { color: var(--human); }
+.t-a { color: var(--ai); }
 .t-or { font-size: 0.42em; color: var(--ink-2); }
 .sub { margin: 12px 0 0; color: var(--ink-2); }
 #hero { display: block; width: 100%; aspect-ratio: 96 / 30; margin: 22px 0 6px; image-rendering: pixelated; }
@@ -175,7 +175,7 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
   background: var(--panel-2); border: 2px solid var(--edge); border-radius: 6px; box-shadow: 0 2px 0 var(--shadow);
   font-variant-numeric: tabular-nums;
 }
-.chip.h { background: var(--human); border-color: var(--human); color: #03131c; }
+.chip.h { background: var(--human); border-color: var(--human); color: #fff; }
 .chip.a { background: var(--ai); border-color: var(--ai); color: #fff; }
 .chip.f { color: var(--flag); }
 #filters { display: none; flex-wrap: wrap; gap: 8px; padding-top: 10px; }
@@ -221,7 +221,7 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 #meta-box summary::after { content: "▾"; margin-left: auto; color: var(--ink-2); }
 #meta-box[open] summary::after { content: "▴"; }
 .badge { padding: 1px 6px; border-radius: 4px; font-size: 13px; font-weight: 700; background: var(--edge); }
-.badge.human { background: var(--human); color: #03131c; }
+.badge.human { background: var(--human); color: #fff; }
 .badge.ai { background: var(--ai); color: #fff; }
 .dim { color: var(--ink-2); font-size: 14px; }
 #meta { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 2px 10px; padding-top: 8px; font-size: 13px; font-variant-numeric: tabular-nums; }
@@ -250,6 +250,8 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 .hist .cap b { color: var(--ink); font-size: 15px; font-weight: 600; }
 .hist .nm { cursor: help; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hist .cap .rng, .hist .cap .auc { white-space: nowrap; }
+.hist .cap .auc { cursor: help; }
+.hist .tip .dim { font-size: 12px; }
 .hist .cap .rng { margin-left: auto; }
 .hist .cap .auc.hi { color: var(--gold); font-weight: 700; }
 .hist .cap .clr { min-height: 0; padding: 0 6px; font: inherit; font-size: 13px; line-height: 18px; color: var(--ink); background: var(--edge); border: 0; border-radius: 4px; cursor: pointer; }

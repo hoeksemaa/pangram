@@ -258,7 +258,7 @@ function initHists() {
       <div class="cap"><span class="nm" title="${esc(f.tip)}"><b>${f.name}</b> ${f.unit}</span><span class="rng"></span>
         <button class="clr" hidden title="clear this filter">×</button>
         <span class="auc" title="AUC of this statistic alone, human vs AI (0.5 = no information). Red = a possible shortcut."></span></div>
-      <div class="tip">${esc(f.tip)}</div>
+      <div class="tip">${esc(f.tip)}<br><span class="dim">AUC: pick one human and one AI clip at random; AUC is the chance this feature alone tells which is which. 0.5 = no clue, 1 = always.</span></div>
       <canvas title="Drag to filter a range. Tap a bar for one bin. Double-click or × to clear."></canvas>
     </div>`).join("");
   const xOf = (e, cv) => Math.max(0, Math.min(cv.clientWidth, e.clientX - cv.getBoundingClientRect().left));
@@ -281,7 +281,7 @@ function initHists() {
     const clear = () => { delete S.ranges[NUM[fi].k]; apply(); };
     cv.addEventListener("dblclick", clear);
     el.querySelector(".clr").addEventListener("click", clear);
-    el.querySelector(".nm").addEventListener("click", () => el.classList.toggle("info"));
+    for (const sel of [".nm", ".auc"]) el.querySelector(sel).addEventListener("click", () => el.classList.toggle("info"));
   });
 }
 function drawHists() { NUM.forEach((_, fi) => drawHist(fi)); }
@@ -426,8 +426,8 @@ function fft(re, im) {
     }
   }
 }
-const LUT = (() => { // dark-to-bright colormap
-  const stops = [[0, 0, 4], [40, 11, 84], [101, 21, 110], [159, 42, 99], [212, 72, 66], [245, 125, 21], [250, 193, 39], [252, 255, 164]];
+const LUT = (() => { // neutral dark-to-bright colormap (blue and red stay for human and AI)
+  const stops = [[2, 4, 10], [22, 30, 50], [52, 64, 94], [98, 110, 140], [156, 164, 184], [210, 210, 214], [246, 242, 234]];
   const lut = new Uint8ClampedArray(256 * 3);
   for (let i = 0; i < 256; i++) {
     const t = (i / 255) * (stops.length - 1), k = Math.min(stops.length - 2, Math.floor(t)), u = t - k;

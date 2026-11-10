@@ -1,4 +1,4 @@
-"""Build the static site for Vercel: the viewer plus a stratified sample of clips.
+"""Build the static site for Vercel: the web app plus a stratified sample of clips.
 
 The sample takes the same number of clips from each split x system group (fixed seed),
 so the human class and every AI system appear in each split. Audio is written as
@@ -21,7 +21,7 @@ import numpy as np
 import soundfile as sf
 
 REPO = Path(__file__).resolve().parent.parent
-VIEWER_FILES = ["index.html", "app.js", "style.css"]
+WEB_FILES = ["index.html", "app.js", "explorer.js", "style.css"]
 
 
 def main() -> None:
@@ -68,8 +68,8 @@ def main() -> None:
         "cols": {k: [v[i] for i in pick] for k, v in cols.items()},
     }
     (args.out / "index.json").write_text(json.dumps(site, separators=(",", ":")))
-    for name in VIEWER_FILES:
-        shutil.copy(REPO / "viewer" / name, args.out / name)
+    for name in WEB_FILES:
+        shutil.copy(REPO / "web" / name, args.out / name)
 
     labels = Counter(cat["label"][cols["label"][i]] for i in pick)
     print(f"{len(pick)} clips from {len(groups)} split x system groups ({dict(labels)})")

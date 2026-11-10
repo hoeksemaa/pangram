@@ -1,7 +1,7 @@
-"""Local server for the data viewer. Serves the page, the clip index, audio, and flags.
+"""Local server for the site, with all clips. Serves the page, the clip index, audio, and flags.
 
 Usage:
-    uv run viewer/serve.py            # then open http://127.0.0.1:8019
+    uv run web/serve.py               # then open http://127.0.0.1:8019/#/data
 """
 
 import argparse
@@ -16,6 +16,7 @@ REPO = HERE.parent
 STATIC = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+    "/explorer.js": ("explorer.js", "text/javascript; charset=utf-8"),
     "/style.css": ("style.css", "text/css; charset=utf-8"),
 }
 AUDIO_RE = re.compile(r"^/audio/(train|dev|eval)/(LA_[TDE]_A?\d+)\.flac$")

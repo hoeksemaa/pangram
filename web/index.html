@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1c">
+<title>Human or AI?</title>
+<meta name="description" content="An AI speech detector, built in the open. Explore the data: human and AI voices from ASVspoof 2019.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Share+Tech+Mono&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%2335c8ff' d='M0 3h1v2H0zM2 1h1v6H2z'/%3E%3Cpath fill='%23ff3b30' d='M4 2h1v4H4zM6 0h1v8H6z'/%3E%3C/svg%3E">
+</head>
+<body data-screen="home">
+<div class="vignette" aria-hidden="true"></div>
+
+<nav id="nav" aria-label="main">
+  <a href="#/" class="nav-home" aria-label="home" title="home"><span data-pix="home"></span></a>
+  <a href="#/data" data-screen="data"><span data-pix="wave"></span>Data</a>
+  <a href="#/model" data-screen="model"><span data-pix="chip"></span>Model</a>
+  <a href="#/try" data-screen="try"><span data-pix="mic"></span>Try</a>
+</nav>
+
+<!-- Home: title, hero, three cards -->
+<section id="home" class="screen">
+  <div class="col">
+    <h1 class="title"><span class="t-h">Human</span><span class="t-or">or</span><span class="t-a">AI?</span></h1>
+    <p class="sub">Can a model hear the difference?</p>
+    <canvas id="hero" aria-hidden="true"></canvas>
+    <div class="hand">
+      <a class="card" href="#/data" style="--r:-7deg;--y:10px;--d:0s">
+        <span class="num">01</span>
+        <span class="card-art" data-pix="wave2"></span>
+        <b>Data</b><span class="card-what">Listen and explore</span>
+      </a>
+      <a class="card wip" href="#/model" style="--r:0deg;--y:0px;--d:.4s">
+        <span class="num">02</span>
+        <span class="card-art" data-pix="chip"></span>
+        <b>Model</b><span class="card-what">Scores and stats</span>
+        <span class="tape"><span>soon</span></span>
+      </a>
+      <a class="card wip" href="#/try" style="--r:7deg;--y:10px;--d:.8s">
+        <span class="num">03</span>
+        <span class="card-art" data-pix="mic"></span>
+        <b>Try it</b><span class="card-what">Your voice vs. the model</span>
+        <span class="tape"><span>soon</span></span>
+      </a>
+    </div>
+  </div>
+  <footer class="credit">
+    data: <a href="https://datashare.ed.ac.uk/handle/10283/3336" target="_blank" rel="noopener">ASVspoof 2019</a> (ODC-By) ·
+    made by <a href="https://github.com/hoeksemaa" target="_blank" rel="noopener">John</a>
+  </footer>
+</section>
+
+<!-- Data: the explorer (explorer.js) -->
+<section id="data" class="screen" data-tab="clips">
+  <header class="ex-head">
+    <div class="ex-bar">
+      <span id="stats" class="chips"></span>
+      <button id="b-filters" class="btn btn-sm only-m" aria-expanded="false">Filters</button>
+    </div>
+    <div id="filters">
+      <select id="f-split" aria-label="split"></select>
+      <select id="f-label" aria-label="label"></select>
+      <select id="f-system" aria-label="system"></select>
+      <select id="f-gender" aria-label="gender"></select>
+      <input id="f-q" type="search" placeholder="id / speaker / hash" aria-label="search">
+      <label class="tog" title="only flagged clips"><input id="f-flag" type="checkbox"><span>flagged</span></label>
+      <label class="tog" title="only clips whose audio is identical to another clip"><input id="f-dup" type="checkbox"><span>dups</span></label>
+      <span class="sort"><select id="f-sort" aria-label="sort by"></select><button id="f-dir" class="btn btn-sm" title="sort direction">▲</button></span>
+      <button id="reset" class="btn btn-sm">Reset</button>
+    </div>
+    <nav id="ex-tabs" class="seg only-m"><button data-tab="clips" class="on">Clips</button><button data-tab="stats">Stats</button></nav>
+  </header>
+  <div class="ex-main">
+    <section id="left">
+      <div id="hists"></div>
+      <table id="counts"></table>
+      <p id="note"></p>
+    </section>
+    <section id="mid" class="panel">
+      <div id="thead"></div>
+      <div id="tbody"><div id="spacer"></div><div id="rows"></div></div>
+    </section>
+    <section id="right" class="panel">
+      <details id="meta-box"><summary id="meta-sum"></summary><div id="meta"></div></details>
+      <div id="viz">
+        <canvas id="wave"></canvas>
+        <canvas id="spec"></canvas>
+        <div id="head"></div>
+        <span id="time"></span>
+      </div>
+      <div id="ctrl">
+        <button id="b-prev" class="btn" title="previous (k / ↑)" aria-label="previous">◀</button>
+        <button id="b-play" class="btn btn-gold" title="play / pause (space)" aria-label="play">▶</button>
+        <button id="b-next" class="btn" title="next (j / ↓)" aria-label="next">▶▶</button>
+        <button id="b-rand" class="btn" title="random clip in the current filter (r)" aria-label="random"><span data-pix="dice"></span></button>
+        <label class="tog" title="play when a clip is selected (a)"><input id="b-auto" type="checkbox" checked><span>auto</span></label>
+        <label class="tog" title="go to the next clip when one ends (c)"><input id="b-chain" type="checkbox"><span>chain</span></label>
+      </div>
+      <div id="flagbox">
+        <input id="flag-note" placeholder="note (f)" aria-label="flag note">
+        <button id="flag-save" class="btn btn-flag" title="save flag (enter)">Flag</button>
+        <button id="flag-clear" class="btn">Unflag</button>
+        <button id="flag-export" class="btn" title="download your flags as JSON" hidden>Export</button>
+      </div>
+      <audio id="audio" preload="auto"></audio>
+    </section>
+  </div>
+</section>
+
+<!-- Model and Try: no model yet -->
+<section id="model" class="screen">
+  <div class="col">
+    <div class="uc panel">
+      <span class="uc-sign" data-pix="barrier"></span>
+      <h2>Under construction</h2>
+      <p>No model yet. Here you will see its scores, its accuracy on each AI system, and its mistakes.</p>
+      <a class="btn btn-gold" href="#/data">Explore the data</a>
+    </div>
+  </div>
+</section>
+<section id="try" class="screen">
+  <div class="col">
+    <div class="uc panel">
+      <span class="uc-sign" data-pix="barrier"></span>
+      <h2>Under construction</h2>
+      <p>No model yet. Here you will pick a clip or upload your own voice, and the model will guess: human or AI.</p>
+      <a class="btn btn-gold" href="#/data">Explore the data</a>
+    </div>
+  </div>
+</section>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

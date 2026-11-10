@@ -1,37 +1,43 @@
-"use strict";
-// Data viewer for ASVspoof 2019 LA: filter, sort, histogram, listen, flag.
-// Runs two ways: viewer/serve.py (all clips, flags saved to notes/flags.jsonl)
-// or as a static site (a sample, flags saved in the browser).
+// The Data tab: explore ASVspoof 2019 LA. Filter, sort, histogram, listen, flag.
+// Runs two ways: web/serve.py (all clips, flags saved to notes/flags.jsonl)
+// or as the static site (a sample, flags saved in the browser).
 
 const $ = (id) => document.getElementById(id);
 const BINS = 40;
 const MQ = matchMedia("(max-width: 899px)");
 const mobile = () => MQ.matches;
-const rowH = () => (mobile() ? 36 : 22);
+const rowH = () => (mobile() ? 40 : 26);
 const FLAG_KEY = "flags:asvspoof2019-la";
 
-// Numeric statistics from scripts/build_index.py. Each gets a histogram.
+// Auditory features from scripts/build_index.py, in groups. Each gets a histogram.
 const NUM = [
-  { k: "dur", short: "dur", name: "duration", unit: "s", dec: 2, tip: "clip length" },
-  { k: "lead_ms", short: "lead", name: "lead silence", unit: "ms", dec: 0, tip: "silence before the first frame within 40 dB of the loudest 20 ms frame" },
-  { k: "trail_ms", short: "trail", name: "trail silence", unit: "ms", dec: 0, tip: "silence after the last such frame" },
-  { k: "sil", short: "sil", name: "silent share", unit: "", dec: 2, tip: "share of 20 ms frames more than 40 dB below the loudest frame" },
-  { k: "rms_db", short: "rms", name: "loudness", unit: "dBFS", dec: 1, tip: "overall RMS level" },
-  { k: "peak_db", short: "peak", name: "peak", unit: "dBFS", dec: 1, tip: "highest sample level" },
-  { k: "noise_db", short: "noise", name: "noise floor", unit: "dBFS", dec: 1, tip: "10th percentile of 20 ms frame levels" },
-  { k: "zero", short: "zero", name: "exact zeros", unit: "", dec: 3, tip: "share of samples that are exactly 0 (digital silence)" },
-  { k: "bw_khz", short: "bw", name: "bandwidth", unit: "kHz", dec: 2, tip: "frequency below which 99% of the energy lies" },
-  { k: "clip", short: "clip", name: "clipped", unit: "", dec: 4, tip: "share of samples at full scale" },
+  { g: "time", k: "dur", short: "dur", name: "duration", unit: "s", dec: 2, tip: "clip length" },
+  { g: "time", k: "syl_rate", short: "syl/s", name: "syllable rate", unit: "/s", dec: 2, tip: "loudness peaks per second, close to syllables per second (eGeMAPS)" },
+  { g: "time", k: "voiced_s", short: "vrun", name: "voiced run", unit: "s", dec: 2, tip: "mean length of one stretch of voiced sound (eGeMAPS)" },
+  { g: "pitch", k: "f0_hz", short: "f0", name: "pitch", unit: "Hz", dec: 0, tip: "mean pitch of the voice (eGeMAPS F0)" },
+  { g: "pitch", k: "f0_range_st", short: "f0rng", name: "pitch range", unit: "st", dec: 1, tip: "20th to 80th percentile of pitch, in semitones: monotone vs. expressive (eGeMAPS)" },
+  { g: "pitch", k: "f0_rise", short: "f0 up", name: "pitch rise speed", unit: "st/s", dec: 0, tip: "mean slope of rising pitch, in semitones per second (eGeMAPS)" },
+  { g: "voice quality", k: "jitter_pct", short: "jit", name: "jitter", unit: "%", dec: 2, tip: "cycle-to-cycle change in pitch period: rough vs. smooth (eGeMAPS)" },
+  { g: "voice quality", k: "shimmer_db", short: "shim", name: "shimmer", unit: "dB", dec: 2, tip: "cycle-to-cycle change in loudness: rough vs. smooth (eGeMAPS)" },
+  { g: "voice quality", k: "hnr_db", short: "hnr", name: "harmonics-to-noise", unit: "dB", dec: 1, tip: "energy in the harmonics vs. noise: clear vs. breathy or hoarse (eGeMAPS)" },
+  { g: "voice quality", k: "h1h2_db", short: "h1h2", name: "breathiness (H1–H2)", unit: "dB", dec: 1, tip: "first harmonic minus second harmonic: higher = breathier (eGeMAPS)" },
+  { g: "vowels", k: "f1_hz", short: "F1", name: "F1", unit: "Hz", dec: 0, tip: "mean first formant: how open the mouth is (eGeMAPS)" },
+  { g: "vowels", k: "f2_hz", short: "F2", name: "F2", unit: "Hz", dec: 0, tip: "mean second formant: tongue front vs. back (eGeMAPS)" },
+  { g: "timbre", k: "bright_hz", short: "brt", name: "brightness", unit: "Hz", dec: 0, tip: "median spectral centroid of speech frames: dull vs. bright" },
+  { g: "timbre", k: "flux", short: "flux", name: "spectral change", unit: "", dec: 2, tip: "how much the spectrum changes from one frame to the next (eGeMAPS spectral flux)" },
+  { g: "timbre", k: "spec_detail_db", short: "detail", name: "spectral detail", unit: "dB", dec: 1, tip: "mean variation over time of 40 mel bands in speech frames: low = over-smoothed" },
+  { g: "loudness", k: "rms_db", short: "rms", name: "loudness", unit: "dBFS", dec: 1, tip: "overall RMS level" },
+  { g: "loudness", k: "loud_range_db", short: "dyn", name: "dynamics", unit: "dB", dec: 1, tip: "10th to 90th percentile of 20 ms frame levels in speech" },
 ];
 const COLS = [
   { k: "flag", name: "⚑", w: 22, tip: "flagged" },
-  { k: "id", name: "id", w: 108 },
+  { k: "id", name: "id", w: 116 },
   { k: "split", name: "split", w: 42, cat: true },
-  { k: "label", name: "label", w: 54, cat: true },
+  { k: "label", name: "label", w: 58, cat: true },
   { k: "system", name: "sys", w: 38, cat: true, tip: "attack system (– = human)" },
-  { k: "speaker", name: "spk", w: 68, cat: true },
+  { k: "speaker", name: "spk", w: 72, cat: true },
   { k: "gender", name: "g", w: 22, cat: true, tip: "speaker gender (dev and eval only)" },
-  ...NUM.map((f) => ({ k: f.k, name: f.short, w: 48, num: true, dec: f.dec, tip: `${f.name}${f.unit ? " (" + f.unit + ")" : ""}: ${f.tip}` })),
+  ...NUM.map((f) => ({ k: f.k, name: f.short, w: 54, num: true, dec: f.dec, tip: `${f.name}${f.unit ? " (" + f.unit + ")" : ""}: ${f.tip}` })),
   { k: "sr", name: "sr", w: 46, num: true, dec: 0, tip: "sample rate (Hz)" },
   { k: "dup", name: "dup", w: 32, num: true, dec: 0, tip: "number of clips with identical audio" },
 ];
@@ -79,6 +85,14 @@ async function loadFlags(tryServer) {
   } catch { /* static site */ }
   try { return JSON.parse(localStorage.getItem(FLAG_KEY) || "{}"); } catch { return {}; }
 }
+let loading = null;
+export function initExplorer() {
+  loading = loading || load().catch((e) => { $("stats").textContent = `error: ${e.message}`; throw e; });
+  return loading;
+}
+export function showExplorer() { layout(); }
+const visible = () => document.body.dataset.screen === "data";
+
 async function load() {
   $("stats").textContent = "loading…";
   const d = await fetch("index.json").then((r) => { if (!r.ok) throw new Error(`index.json ${r.status}`); return r.json(); });
@@ -97,9 +111,9 @@ async function load() {
   $("flag-export").hidden = serverFlags;
   const src = '<a href="https://datashare.ed.ac.uk/handle/10283/3336" target="_blank" rel="noopener">ASVspoof 2019</a> (ODC-By 1.0)';
   $("note").innerHTML = doc.sample
-    ? `Sample: ${N.toLocaleString()} of ${doc.sample.n_total.toLocaleString()} clips, ${doc.sample.per_group} per split × system. Data: ${src}.`
+    ? `A sample: ${N.toLocaleString()} of ${doc.sample.n_total.toLocaleString()} clips, ${doc.sample.per_group} from each split × system. Data: ${src}.`
     : `Data: ${src}.`;
-  initFilters(); initHists(); bind(); layout();
+  initFilters(); initHists(); bind();
   apply();
   if (S.rows.length) select(0, false);
 }
@@ -168,7 +182,9 @@ function apply() {
 }
 function updateStats() {
   const [h, a] = S.nhna;
-  $("stats").innerHTML = `${S.rows.length.toLocaleString()} / ${N.toLocaleString()} · <span class="h">human ${h.toLocaleString()}</span> · <span class="a">AI ${a.toLocaleString()}</span> · ⚑ ${S.flags.size}`;
+  const all = S.rows.length === N ? N.toLocaleString() : `${S.rows.length.toLocaleString()}/${N.toLocaleString()}`;
+  $("stats").innerHTML = `<span class="chip" title="clips shown">${all}</span><span class="chip h" title="human clips shown">${h.toLocaleString()}</span>`
+    + `<span class="chip a" title="AI clips shown">${a.toLocaleString()}</span><span class="chip f" title="flagged clips">⚑ ${S.flags.size}</span>`;
 }
 
 // ---------- table ----------
@@ -236,11 +252,12 @@ function scrollToRow(p) {
 
 // ---------- histograms ----------
 function initHists() {
-  $("hists").innerHTML = NUM.map((f, fi) => `
+  $("hists").innerHTML = NUM.map((f, fi) => `${fi === 0 || NUM[fi - 1].g !== f.g ? `<div class="grp">${f.g}</div>` : ""}
     <div class="hist" data-fi="${fi}">
-      <div class="cap"><span title="${esc(f.tip)}"><b>${f.name}</b> ${f.unit}</span><span class="rng"></span>
+      <div class="cap"><span class="nm" title="${esc(f.tip)}"><b>${f.name}</b> ${f.unit}</span><span class="rng"></span>
         <button class="clr" hidden title="clear this filter">×</button>
         <span class="auc" title="AUC of this statistic alone, human vs AI (0.5 = no information). Red = a possible shortcut."></span></div>
+      <div class="tip">${esc(f.tip)}</div>
       <canvas title="Drag to filter a range. Tap a bar for one bin. Double-click or × to clear."></canvas>
     </div>`).join("");
   const xOf = (e, cv) => Math.max(0, Math.min(cv.clientWidth, e.clientX - cv.getBoundingClientRect().left));
@@ -263,34 +280,34 @@ function initHists() {
     const clear = () => { delete S.ranges[NUM[fi].k]; apply(); };
     cv.addEventListener("dblclick", clear);
     el.querySelector(".clr").addEventListener("click", clear);
+    el.querySelector(".nm").addEventListener("click", () => el.classList.toggle("info"));
   });
 }
 function drawHists() { NUM.forEach((_, fi) => drawHist(fi)); }
 function drawHist(fi, drag) {
-  const f = NUM[fi], el = $("hists").children[fi], cv = el.querySelector("canvas");
+  const f = NUM[fi], el = $("hists").querySelector(`.hist[data-fi="${fi}"]`), cv = el.querySelector("canvas");
   if (!cv.clientWidth || !S.hist.length) return; // hidden tab, or before the first apply()
   const g = fit(cv), W = cv.width, H = cv.height, { h, a } = S.hist[fi];
   const th = h.reduce((s, x) => s + x, 0), ta = a.reduce((s, x) => s + x, 0);
   let ymax = 0;
   for (let k = 0; k < BINS; k++) ymax = Math.max(ymax, th ? h[k] / th : 0, ta ? a[k] / ta : 0);
   g.clearRect(0, 0, W, H);
-  const bw = W / BINS;
-  for (const [arr, tot, col] of [[h, th, css("--human")], [a, ta, css("--ai")]]) {
-    if (!tot) continue;
-    g.fillStyle = col; g.globalAlpha = 0.55;
+  const bw = W / BINS, gap = Math.max(1, Math.round(dpr())), half = Math.max(1, Math.floor((bw - gap) / 2));
+  [[h, th, css("--human"), 0], [a, ta, css("--ai"), half]].forEach(([arr, tot, col, dx]) => {
+    if (!tot) return;
+    g.fillStyle = col;
     for (let k = 0; k < BINS; k++) {
-      const y = ymax ? ((arr[k] / tot) / ymax) * (H - 2) : 0;
-      if (y > 0) g.fillRect(k * bw + 0.5, H - y, Math.max(1, bw - 1), y);
+      const y = ymax ? Math.round(((arr[k] / tot) / ymax) * (H - 3 * gap)) : 0;
+      if (y > 0) g.fillRect(Math.round(k * bw) + dx, H - y, half, y);
     }
-  }
-  g.globalAlpha = 1;
+  });
   const [lo, hi] = S.dom[f.k], r = S.ranges[f.k];
   let sel = null;
   if (drag) sel = [Math.min(drag.x0, drag.x1) * dpr(), Math.max(drag.x0, drag.x1) * dpr()];
   else if (r) sel = [r[0] === -Infinity ? 0 : ((r[0] - lo) / (hi - lo)) * W, r[1] === Infinity ? W : ((r[1] - lo) / (hi - lo)) * W];
   if (sel) {
-    g.fillStyle = "rgba(128,128,128,0.18)"; g.fillRect(sel[0], 0, sel[1] - sel[0], H);
-    g.strokeStyle = css("--fg"); g.lineWidth = dpr(); g.strokeRect(sel[0], 0.5, sel[1] - sel[0], H - 1);
+    g.fillStyle = "rgba(255,194,61,0.16)"; g.fillRect(sel[0], 0, sel[1] - sel[0], H);
+    g.strokeStyle = css("--gold"); g.lineWidth = 2 * dpr(); g.strokeRect(sel[0] + dpr(), dpr(), sel[1] - sel[0] - 2 * dpr(), H - 2 * dpr());
   }
   const show = (v) => (Math.abs(v) === Infinity ? "…" : v.toFixed(f.dec));
   el.querySelector(".rng").textContent = r ? `[${show(r[0])}, ${show(r[1])}]` : `${lo.toFixed(f.dec)} – ${hi.toFixed(f.dec)}`;
@@ -356,7 +373,7 @@ async function decode(buf, sr) {
 }
 function showMeta(i) {
   const L = cat.label[C.label[i]], sys = cat.system[C.system[i]];
-  $("meta-sum").innerHTML = `${ids[i]} · <span class="${esc(L)}">${esc(L)}</span> · ${sys === "-" ? "–" : esc(sys)} · ${cat.speaker[C.speaker[i]]} · ${fmt(C.dur[i], 2)} s`;
+  $("meta-sum").innerHTML = `<span class="badge ${esc(L)}">${L === "ai" ? "AI" : esc(L)}</span> <b>${ids[i]}</b> <span class="dim">${sys === "-" ? "" : esc(sys) + " · "}${cat.speaker[C.speaker[i]]} · ${fmt(C.dur[i], 2)} s</span>`;
   const kv = [
     ["split", cat.split[C.split[i]]], ["gender", cat.gender[C.gender[i]]],
     ...NUM.filter((f) => f.k !== "dur").map((f) => [f.short, `${fmt(C[f.k][i], f.dec)} ${f.unit}`]),
@@ -369,16 +386,12 @@ function showMeta(i) {
 function clearViz(msg) {
   for (const id of ["wave", "spec"]) fit($(id)).clearRect(0, 0, $(id).width, $(id).height);
   const g = $("spec").getContext("2d");
-  g.fillStyle = "#ccc"; g.font = `${12 * dpr()}px system-ui`; g.fillText(msg, 10, 24);
+  g.fillStyle = "#ccc"; g.font = `${13 * dpr()}px "Pixelify Sans", monospace`; g.fillText(msg, 10, 24);
 }
 function drawViz() { if (cur && cur.ab && $("spec").clientWidth) { drawWave(cur.ab, cur.i); drawSpec(cur.ab, C.sr[cur.i]); } }
 function drawWave(ab, i) {
   const cv = $("wave"), g = fit(cv), W = cv.width, H = cv.height, x = ab.getChannelData(0);
   g.clearRect(0, 0, W, H);
-  const dur = x.length / ab.sampleRate, lead = C.lead_ms[i] / 1000, trail = C.trail_ms[i] / 1000;
-  g.fillStyle = "rgba(128,128,128,0.28)"; // shade the leading and trailing silence
-  if (lead > 0) g.fillRect(0, 0, (W * lead) / dur, H);
-  if (trail > 0) g.fillRect(W * (1 - trail / dur), 0, W, H);
   g.strokeStyle = C.label[i] === HUMAN ? css("--human") : css("--ai");
   g.lineWidth = 1; g.beginPath();
   const spp = x.length / W;
@@ -449,7 +462,7 @@ function drawSpec(ab, sr) {
   og.putImageData(img, 0, 0);
   const cv = $("spec"), g = fit(cv), W = cv.width, H = cv.height;
   g.imageSmoothingEnabled = true; g.drawImage(off, 0, 0, W, H);
-  g.fillStyle = "rgba(255,255,255,0.75)"; g.font = `${10 * dpr()}px system-ui`;
+  g.fillStyle = "rgba(255,255,255,0.8)"; g.font = `${11 * dpr()}px "Pixelify Sans", monospace`;
   const fTop = (nb / nfft) * rate;
   for (let k = 2; k * 1000 < fTop; k += 2) g.fillText(`${k}k`, 3 * dpr(), H - ((k * 1000) / fTop) * H + 4 * dpr());
 }
@@ -488,8 +501,8 @@ function layout() {
   layoutRows(); drawHists(); drawViz();
 }
 function setTab(t) {
-  document.body.dataset.tab = t;
-  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === t));
+  $("data").dataset.tab = t;
+  document.querySelectorAll("#ex-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === t));
   if (t === "stats") drawHists(); else { layoutRows(); drawViz(); }
 }
 function bind() {
@@ -503,11 +516,11 @@ function bind() {
     $("f-flag").checked = $("f-dup").checked = false; S.ranges = {}; apply();
   });
   $("b-filters").addEventListener("click", () => {
-    const on = document.body.classList.toggle("show-filters");
+    const on = $("data").classList.toggle("show-filters");
     $("b-filters").setAttribute("aria-expanded", on);
     renderRows();
   });
-  document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
+  document.querySelectorAll("#ex-tabs button").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
   $("tbody").addEventListener("scroll", () => { $("thead").scrollLeft = $("tbody").scrollLeft; renderRows(); }, { passive: true });
   $("thead").addEventListener("click", (e) => {
     const k = e.target.closest("span")?.dataset.k; if (!k) return;
@@ -536,12 +549,15 @@ function bind() {
     if (A.duration && isFinite(A.duration)) { A.currentTime = ((e.clientX - r.left) / r.width) * A.duration; tick(); }
   });
   A.addEventListener("play", () => { $("b-play").textContent = "❚❚"; requestAnimationFrame(tick); });
+  A.addEventListener("ended", () => $("viz").classList.remove("live"));
   A.addEventListener("pause", () => { $("b-play").textContent = "▶"; tick(); });
   A.addEventListener("loadedmetadata", tick);
   A.addEventListener("ended", () => { if ($("b-chain").checked && S.sel < S.rows.length - 1) select(S.sel + 1, true); });
-  MQ.addEventListener("change", layout);
-  window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(layout, 100); });
+  MQ.addEventListener("change", () => visible() && layout());
+  window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => visible() && layout(), 100); });
+  window.addEventListener("hashchange", () => { if (!visible()) A.pause(); });
   document.addEventListener("keydown", (e) => {
+    if (!visible()) return;
     const el = document.activeElement, tag = el?.tagName;
     if ((tag === "INPUT" && el.type !== "checkbox") || tag === "SELECT") {
       if (e.key === "Escape") el.blur();
@@ -559,4 +575,3 @@ function bind() {
   });
 }
 
-load().catch((e) => { $("stats").textContent = `error: ${e.message}`; });

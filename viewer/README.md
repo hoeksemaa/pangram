@@ -9,7 +9,7 @@ uv run viewer/serve.py          # all clips: open http://127.0.0.1:8019
 
 The audio goes in `data/raw/LA/` (from [Edinburgh DataShare](https://datashare.ed.ac.uk/handle/10283/3336), `LA.zip`).
 
-**Web version:** a sample of clips (same count from each split × system), built into `site/` and deployed by CLI. Not in git.
+**Web version:** https://pangram-demo-hoeksema.vercel.app — 560 clips (20 from each split × system), built into `site/` and deployed by CLI. Not in git.
 
 ```
 uv run scripts/build_site.py && cd site && vercel deploy --prod

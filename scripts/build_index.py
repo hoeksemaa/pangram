@@ -74,6 +74,18 @@ def read_genders(root: Path) -> dict[str, str]:
     return genders
 
 
+def read_enrollment(root: Path) -> dict[str, str]:
+    """Clip id -> speaker for the ASV enrollment clips (genuine speech, not in the CM protocols)."""
+    enroll = {}
+    for path in sorted((root / "ASVspoof2019_LA_asv_protocols").glob("*.trn.txt")):
+        for line in path.read_text().splitlines():
+            parts = line.split()
+            if len(parts) == 2:
+                for cid in parts[1].split(","):
+                    enroll[cid] = parts[0]
+    return enroll
+
+
 def audio_path(root: Path, split: str, cid: str) -> Path:
     return root / f"ASVspoof2019_LA_{split}" / "flac" / f"{cid}.flac"
 
@@ -129,10 +141,13 @@ def main() -> None:
 
     rows = read_protocols(args.root)
     listed = {r["id"] for r in rows}
-    for split in PROTOCOLS:  # audio files that no protocol lists
+    enroll = read_enrollment(args.root)
+    for split in PROTOCOLS:  # audio files that no CM protocol lists: ASV enrollment clips, or unknown
         for path in sorted((args.root / f"ASVspoof2019_LA_{split}" / "flac").glob("*.flac")):
             if path.stem not in listed:
-                rows.append({"id": path.stem, "split": split, "speaker": "?", "system": "?", "label": "?"})
+                spk = enroll.get(path.stem)
+                rows.append({"id": path.stem, "split": split, "speaker": spk or "?",
+                             "system": "enroll" if spk else "?", "label": "?"})
     genders = read_genders(args.root)
     for r in rows:
         r["gender"] = genders.get(r["speaker"], "?")
@@ -174,7 +189,7 @@ def main() -> None:
     print("channels:", dict(Counter(r.get("ch") for r in rows)))
     print("errors:", sum(1 for r in rows if r["err"]))
     print("clips in duplicate groups:", sum(1 for r in rows if r["dup"] > 1))
-    print("unlisted audio files:", sum(1 for r in rows if r["label"] == "?"))
+    print("not in CM protocols:", dict(Counter(r["system"] for r in rows if r["label"] == "?")))
 
 
 if __name__ == "__main__":

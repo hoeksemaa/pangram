@@ -18,8 +18,8 @@ STATIC = {
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
     "/style.css": ("style.css", "text/css; charset=utf-8"),
 }
-AUDIO_RE = re.compile(r"^/audio/(train|dev|eval)/(LA_[TDE]_\d+)\.flac$")
-ID_RE = re.compile(r"^LA_[TDE]_\d+$")
+AUDIO_RE = re.compile(r"^/audio/(train|dev|eval)/(LA_[TDE]_A?\d+)\.flac$")
+ID_RE = re.compile(r"^LA_[TDE]_A?\d+$")
 RANGE_RE = re.compile(r"^bytes=(\d*)-(\d*)$")
 
 

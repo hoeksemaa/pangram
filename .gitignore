@@ -8,6 +8,10 @@
 *.aac
 data/raw/
 data/generated/
+data/index/
+*.zip
+*.tar
+*.tar.gz
 
 # Model weights and caches
 *.pt

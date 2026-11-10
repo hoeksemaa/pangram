@@ -1,0 +1,9 @@
+[project]
+name = "pangram-detector"
+version = "0.1.0"
+description = "A model that tells human speech from AI-generated speech."
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.0",
+    "soundfile>=0.12",
+]

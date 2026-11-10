@@ -1,9 +1,14 @@
 "use strict";
 // Data viewer for ASVspoof 2019 LA: filter, sort, histogram, listen, flag.
+// Runs two ways: viewer/serve.py (all clips, flags saved to notes/flags.jsonl)
+// or as a static site (a sample, flags saved in the browser).
 
 const $ = (id) => document.getElementById(id);
-const ROW_H = 22;
 const BINS = 40;
+const MQ = matchMedia("(max-width: 899px)");
+const mobile = () => MQ.matches;
+const rowH = () => (mobile() ? 36 : 22);
+const FLAG_KEY = "flags:asvspoof2019-la";
 
 // Numeric statistics from scripts/build_index.py. Each gets a histogram.
 const NUM = [
@@ -23,31 +28,31 @@ const COLS = [
   { k: "id", name: "id", w: 108 },
   { k: "split", name: "split", w: 42, cat: true },
   { k: "label", name: "label", w: 54, cat: true },
-  { k: "system", name: "sys", w: 36, cat: true, tip: "attack system (– = human)" },
+  { k: "system", name: "sys", w: 38, cat: true, tip: "attack system (– = human)" },
   { k: "speaker", name: "spk", w: 68, cat: true },
   { k: "gender", name: "g", w: 22, cat: true, tip: "speaker gender (dev and eval only)" },
   ...NUM.map((f) => ({ k: f.k, name: f.short, w: 48, num: true, dec: f.dec, tip: `${f.name}${f.unit ? " (" + f.unit + ")" : ""}: ${f.tip}` })),
   { k: "sr", name: "sr", w: 46, num: true, dec: 0, tip: "sample rate (Hz)" },
   { k: "dup", name: "dup", w: 32, num: true, dec: 0, tip: "number of clips with identical audio" },
 ];
-const TOTAL_W = COLS.reduce((s, c) => s + c.w, 0);
+const MOBILE_KEYS = ["flag", "id", "label", "system", "speaker"];
 const CAT_KEYS = ["split", "label", "system", "speaker", "gender"];
 
-let N = 0, cat, ids, hashes, errs, HUMAN = -1, AI = -1;
+let N = 0, doc, cat, ids, hashes, errs, HUMAN = -1, AI = -1, serverFlags = false;
 const C = {};
 const S = {
   rows: new Uint32Array(0), sortKey: "id", sortDir: 1, sel: -1,
-  ranges: {}, dom: {}, hist: [], flags: new Map(), counts: null,
+  ranges: {}, dom: {}, hist: [], flags: new Map(), counts: null, nhna: [0, 0],
 };
 
 // ---------- helpers ----------
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const fmt = (v, dec) => (v !== v ? "" : v.toFixed(dec));
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const dpr = () => window.devicePixelRatio || 1;
 function fit(cv) {
-  const dpr = window.devicePixelRatio || 1;
-  cv.width = Math.max(1, Math.round(cv.clientWidth * dpr));
-  cv.height = Math.max(1, Math.round(cv.clientHeight * dpr));
+  cv.width = Math.max(1, Math.round(cv.clientWidth * dpr()));
+  cv.height = Math.max(1, Math.round(cv.clientHeight * dpr()));
   return cv.getContext("2d");
 }
 function domain(arr) {
@@ -57,25 +62,44 @@ function domain(arr) {
   if (hi <= lo) { lo -= 0.5; hi += 0.5; }
   return [lo, hi];
 }
+function visCols() {
+  if (!mobile()) return COLS;
+  const cols = COLS.filter((c) => MOBILE_KEYS.includes(c.k));
+  const s = COLS.find((c) => c.k === S.sortKey);
+  if (s && !MOBILE_KEYS.includes(s.k)) cols.push(s);
+  return cols;
+}
+const audioUrl = (i) => `${doc.audio.base}/${cat.split[C.split[i]]}/${ids[i]}.${doc.audio.ext}`;
 
 // ---------- load ----------
+async function loadFlags(tryServer) {
+  if (tryServer) try {
+    const r = await fetch("flags");
+    if (r.ok && (r.headers.get("content-type") || "").includes("json")) { serverFlags = true; return await r.json(); }
+  } catch { /* static site */ }
+  try { return JSON.parse(localStorage.getItem(FLAG_KEY) || "{}"); } catch { return {}; }
+}
 async function load() {
   $("stats").textContent = "loading…";
-  const [doc, flags] = await Promise.all([
-    fetch("/index.json").then((r) => { if (!r.ok) throw new Error(`index.json ${r.status}: run scripts/build_index.py`); return r.json(); }),
-    fetch("/flags").then((r) => r.json()),
-  ]);
-  N = doc.n; cat = doc.cat; ids = doc.cols.id; hashes = doc.cols.hash; errs = doc.cols.err;
-  for (const k of CAT_KEYS) C[k] = Uint16Array.from(doc.cols[k]);
+  const d = await fetch("index.json").then((r) => { if (!r.ok) throw new Error(`index.json ${r.status}`); return r.json(); });
+  const flags = await loadFlags(!d.sample); // the static site (a sample) has no flag server
+  doc = d; N = d.n; cat = d.cat; ids = d.cols.id; hashes = d.cols.hash; errs = d.cols.err;
+  doc.audio = doc.audio || { base: "audio", ext: "flac" };
+  for (const k of CAT_KEYS) C[k] = Uint16Array.from(d.cols[k]);
   for (const k of [...NUM.map((f) => f.k), "sr", "ch", "dup"]) {
-    const src = doc.cols[k], a = new Float64Array(N);
+    const src = d.cols[k], a = new Float64Array(N);
     for (let i = 0; i < N; i++) a[i] = src[i] == null ? NaN : src[i];
     C[k] = a;
   }
   HUMAN = cat.label.indexOf("human"); AI = cat.label.indexOf("ai");
   for (const f of NUM) S.dom[f.k] = domain(C[f.k]);
   S.flags = new Map(Object.entries(flags));
-  initFilters(); initHeader(); initHists(); bind();
+  $("flag-export").hidden = serverFlags;
+  const src = '<a href="https://datashare.ed.ac.uk/handle/10283/3336" target="_blank" rel="noopener">ASVspoof 2019</a> (ODC-By 1.0)';
+  $("note").innerHTML = doc.sample
+    ? `Sample: ${N.toLocaleString()} of ${doc.sample.n_total.toLocaleString()} clips, ${doc.sample.per_group} per split × system. Data: ${src}.`
+    : `Data: ${src}.`;
+  initFilters(); initHists(); bind(); layout();
   apply();
   if (S.rows.length) select(0, false);
 }
@@ -89,6 +113,7 @@ function initFilters() {
   opts("f-label", "label", cat.label);
   opts("f-system", "system", cat.system, (v) => (v === "-" ? "– human" : v));
   opts("f-gender", "gender", cat.gender);
+  $("f-sort").innerHTML = COLS.filter((c) => c.k !== "flag").map((c) => `<option value="${c.k}">sort: ${c.k === "id" ? "id" : c.name}</option>`).join("") + '<option value="flag">sort: flagged</option>';
 }
 function readF() {
   const n = (id) => ($(id).value === "" ? -1 : +$(id).value);
@@ -99,7 +124,7 @@ function readF() {
 }
 
 // One pass over all clips: table rows, class counts, histograms (each ignores its own
-// range), and the system x split counts (which ignore the split and system filters).
+// range filter), and the system x split counts (which ignore the split and system filters).
 function apply() {
   const F = readF();
   const prev = S.sel >= 0 && S.sel < S.rows.length ? S.rows[S.sel] : -1;
@@ -136,16 +161,13 @@ function apply() {
     }
   }
   S.rows = Uint32Array.from(out);
-  S.hist = hist; S.counts = counts;
+  S.hist = hist; S.counts = counts; S.nhna = [nh, na];
   sortRows();
   S.sel = prev >= 0 ? S.rows.indexOf(prev) : -1;
-  $("spacer").style.height = `${S.rows.length * ROW_H}px`;
-  updateStats(nh, na);
-  renderRows(); drawHists(); drawCounts();
+  updateStats(); layoutRows(); drawHists(); drawCounts();
 }
-function updateStats(nh, na) {
-  if (nh !== undefined) S.nhna = [nh, na];
-  const [h, a] = S.nhna || [0, 0];
+function updateStats() {
+  const [h, a] = S.nhna;
   $("stats").innerHTML = `${S.rows.length.toLocaleString()} / ${N.toLocaleString()} · <span class="h">human ${h.toLocaleString()}</span> · <span class="a">AI ${a.toLocaleString()}</span> · ⚑ ${S.flags.size}`;
 }
 
@@ -163,78 +185,91 @@ function sortRows() {
     });
   }
 }
-function initHeader() {
-  $("thead").style.overflow = "hidden";
-  $("rows").style.width = $("spacer").style.width = `${TOTAL_W}px`;
-  renderHeader();
+function setSort(k, dir) {
+  const col = COLS.find((c) => c.k === k);
+  S.sortKey = k; S.sortDir = dir ?? (col && col.num ? -1 : 1);
+  const id = S.sel >= 0 ? S.rows[S.sel] : -1;
+  sortRows(); S.sel = id >= 0 ? S.rows.indexOf(id) : -1;
+  $("f-sort").value = k; $("f-dir").textContent = S.sortDir > 0 ? "▲" : "▼";
+  layoutRows(); if (S.sel >= 0) scrollToRow(S.sel);
 }
-function renderHeader() {
-  $("thead").innerHTML = `<div style="display:flex;min-width:${TOTAL_W}px">` + COLS.map((c) => {
+function layoutRows() {
+  const cols = visCols(), w = Math.max(cols.reduce((s, c) => s + c.w, 0), $("tbody").clientWidth);
+  $("rows").style.width = $("spacer").style.width = `${w}px`;
+  $("spacer").style.height = `${S.rows.length * rowH()}px`;
+  $("thead").innerHTML = `<div style="display:flex;min-width:${w}px">` + cols.map((c) => {
     const on = c.k === S.sortKey, arrow = on ? (S.sortDir > 0 ? " ▲" : " ▼") : "";
-    return `<span data-k="${c.k}" class="${on ? "on" : ""}" title="${esc(c.tip || c.k)}" style="flex:0 0 ${c.w}px;${c.num ? "text-align:right" : ""}">${c.name}${arrow}</span>`;
+    return `<span data-k="${c.k}" class="${on ? "on" : ""}" title="${esc(c.tip || c.k)}" style="flex:${c.k === "id" ? 1 : 0} 0 ${c.w}px;${c.num ? "text-align:right" : ""}">${c.name}${arrow}</span>`;
   }).join("") + "</div>";
+  renderRows();
 }
 function cell(c, i) {
   const st = `style="flex:0 0 ${c.w}px"`;
   if (c.k === "flag") return `<span ${st} class="fl">${S.flags.has(ids[i]) ? "⚑" : ""}</span>`;
-  if (c.k === "id") return `<span ${st}>${ids[i]}</span>`;
+  if (c.k === "id") return `<span style="flex:1 0 ${c.w}px">${ids[i]}</span>`; // takes the spare width
   if (c.cat) {
     const v = cat[c.k][C[c.k][i]];
-    const cls = c.k === "label" ? v : c.k === "speaker" || c.k === "system" ? "lk" : "";
+    const cls = c.k === "label" ? v : "";
     const show = c.k === "system" && v === "-" ? "–" : c.k === "gender" ? v[0] : v;
     return `<span ${st} class="${cls}" data-k="${c.k}">${esc(show)}</span>`;
   }
   return `<span ${st} class="n">${fmt(C[c.k][i], c.dec)}</span>`;
 }
 function renderRows() {
-  const tb = $("tbody"), top = tb.scrollTop, h = tb.clientHeight || 800;
-  const a = Math.max(0, Math.floor(top / ROW_H) - 15);
-  const b = Math.min(S.rows.length, Math.ceil((top + h) / ROW_H) + 15);
+  const tb = $("tbody"), h = rowH(), top = tb.scrollTop, H = tb.clientHeight || 800, cols = visCols();
+  const a = Math.max(0, Math.floor(top / h) - 15);
+  const b = Math.min(S.rows.length, Math.ceil((top + H) / h) + 15);
   let html = "";
   for (let p = a; p < b; p++) {
     const i = S.rows[p];
-    html += `<div class="r${p === S.sel ? " sel" : ""}${errs[i] ? " err" : ""}" data-p="${p}" style="top:${p * ROW_H}px">`;
-    for (const c of COLS) html += cell(c, i);
+    html += `<div class="r${p === S.sel ? " sel" : ""}${errs[i] ? " err" : ""}" data-p="${p}" style="top:${p * h}px;height:${h}px">`;
+    for (const c of cols) html += cell(c, i);
     html += "</div>";
   }
   $("rows").innerHTML = html;
 }
 function scrollToRow(p) {
-  const tb = $("tbody"), y = p * ROW_H;
+  const tb = $("tbody"), h = rowH(), y = p * h;
   if (y < tb.scrollTop) tb.scrollTop = y;
-  else if (y + ROW_H > tb.scrollTop + tb.clientHeight) tb.scrollTop = y + ROW_H - tb.clientHeight;
+  else if (y + h > tb.scrollTop + tb.clientHeight) tb.scrollTop = y + h - tb.clientHeight;
 }
 
 // ---------- histograms ----------
 function initHists() {
   $("hists").innerHTML = NUM.map((f, fi) => `
-    <div class="hist" data-fi="${fi}" title="${esc(f.tip)}. Drag to filter a range, click a bar for one bin, double-click to clear.">
-      <div class="cap"><span><b>${f.name}</b> ${f.unit}</span><span class="rng"></span><span class="auc" title="AUC of this statistic alone, human vs AI (0.5 = no information). High = a possible shortcut."></span></div>
-      <canvas></canvas>
+    <div class="hist" data-fi="${fi}">
+      <div class="cap"><span title="${esc(f.tip)}"><b>${f.name}</b> ${f.unit}</span><span class="rng"></span>
+        <button class="clr" hidden title="clear this filter">×</button>
+        <span class="auc" title="AUC of this statistic alone, human vs AI (0.5 = no information). Red = a possible shortcut."></span></div>
+      <canvas title="Drag to filter a range. Tap a bar for one bin. Double-click or × to clear."></canvas>
     </div>`).join("");
-  let drag = null;
   const xOf = (e, cv) => Math.max(0, Math.min(cv.clientWidth, e.clientX - cv.getBoundingClientRect().left));
   $("hists").querySelectorAll(".hist").forEach((el) => {
     const fi = +el.dataset.fi, cv = el.querySelector("canvas");
-    cv.addEventListener("mousedown", (e) => { drag = { fi, cv, x0: xOf(e, cv), x1: xOf(e, cv) }; e.preventDefault(); });
-    cv.addEventListener("dblclick", () => { delete S.ranges[NUM[fi].k]; apply(); });
-  });
-  window.addEventListener("mousemove", (e) => { if (drag) { drag.x1 = xOf(e, drag.cv); drawHist(drag.fi, drag); } });
-  window.addEventListener("mouseup", () => {
-    if (!drag) return;
-    const { fi, cv, x0, x1 } = drag, f = NUM[fi], [lo, hi] = S.dom[f.k], W = cv.clientWidth;
-    drag = null;
-    let a, b;
-    if (Math.abs(x1 - x0) < 3) { const k = Math.min(BINS - 1, Math.floor((x0 / W) * BINS)); a = k / BINS; b = (k + 1) / BINS; }
-    else { a = Math.min(x0, x1) / W; b = Math.max(x0, x1) / W; }
-    S.ranges[f.k] = [a <= 0.001 ? -Infinity : lo + a * (hi - lo), b >= 0.999 ? Infinity : lo + b * (hi - lo)];
-    apply();
+    let drag = null;
+    cv.addEventListener("pointerdown", (e) => { try { cv.setPointerCapture(e.pointerId); } catch { /* keep dragging */ } drag = { x0: xOf(e, cv), x1: xOf(e, cv) }; });
+    cv.addEventListener("pointermove", (e) => { if (drag) { drag.x1 = xOf(e, cv); drawHist(fi, drag); } });
+    cv.addEventListener("pointercancel", () => { drag = null; drawHist(fi); });
+    cv.addEventListener("pointerup", () => {
+      if (!drag) return;
+      const { x0, x1 } = drag, f = NUM[fi], [lo, hi] = S.dom[f.k], W = cv.clientWidth;
+      drag = null;
+      let a, b;
+      if (Math.abs(x1 - x0) < 4) { const k = Math.min(BINS - 1, Math.floor((x0 / W) * BINS)); a = k / BINS; b = (k + 1) / BINS; }
+      else { a = Math.min(x0, x1) / W; b = Math.max(x0, x1) / W; }
+      S.ranges[f.k] = [a <= 0.001 ? -Infinity : lo + a * (hi - lo), b >= 0.999 ? Infinity : lo + b * (hi - lo)];
+      apply();
+    });
+    const clear = () => { delete S.ranges[NUM[fi].k]; apply(); };
+    cv.addEventListener("dblclick", clear);
+    el.querySelector(".clr").addEventListener("click", clear);
   });
 }
 function drawHists() { NUM.forEach((_, fi) => drawHist(fi)); }
 function drawHist(fi, drag) {
   const f = NUM[fi], el = $("hists").children[fi], cv = el.querySelector("canvas");
-  const g = fit(cv), W = cv.width, H = cv.height, { h, a } = S.hist[fi] || { h: [], a: [] };
+  if (!cv.clientWidth || !S.hist.length) return; // hidden tab, or before the first apply()
+  const g = fit(cv), W = cv.width, H = cv.height, { h, a } = S.hist[fi];
   const th = h.reduce((s, x) => s + x, 0), ta = a.reduce((s, x) => s + x, 0);
   let ymax = 0;
   for (let k = 0; k < BINS; k++) ymax = Math.max(ymax, th ? h[k] / th : 0, ta ? a[k] / ta : 0);
@@ -250,17 +285,16 @@ function drawHist(fi, drag) {
   }
   g.globalAlpha = 1;
   const [lo, hi] = S.dom[f.k], r = S.ranges[f.k];
-  const dpr = window.devicePixelRatio || 1;
   let sel = null;
-  if (drag) sel = [Math.min(drag.x0, drag.x1) * dpr, Math.max(drag.x0, drag.x1) * dpr];
+  if (drag) sel = [Math.min(drag.x0, drag.x1) * dpr(), Math.max(drag.x0, drag.x1) * dpr()];
   else if (r) sel = [r[0] === -Infinity ? 0 : ((r[0] - lo) / (hi - lo)) * W, r[1] === Infinity ? W : ((r[1] - lo) / (hi - lo)) * W];
   if (sel) {
     g.fillStyle = "rgba(128,128,128,0.18)"; g.fillRect(sel[0], 0, sel[1] - sel[0], H);
-    g.strokeStyle = css("--fg"); g.lineWidth = dpr; g.strokeRect(sel[0], 0.5, sel[1] - sel[0], H - 1);
+    g.strokeStyle = css("--fg"); g.lineWidth = dpr(); g.strokeRect(sel[0], 0.5, sel[1] - sel[0], H - 1);
   }
-  // caption: axis range or filter range, and AUC of the statistic alone
-  const show = (v) => (Math.abs(v) === Infinity ? "" : v.toFixed(f.dec));
-  el.querySelector(".rng").textContent = r ? `[${show(r[0]) || "…"}, ${show(r[1]) || "…"}]` : `${lo.toFixed(f.dec)} – ${hi.toFixed(f.dec)}`;
+  const show = (v) => (Math.abs(v) === Infinity ? "…" : v.toFixed(f.dec));
+  el.querySelector(".rng").textContent = r ? `[${show(r[0])}, ${show(r[1])}]` : `${lo.toFixed(f.dec)} – ${hi.toFixed(f.dec)}`;
+  el.querySelector(".clr").hidden = !r;
   let auc = NaN;
   if (th && ta) {
     let below = 0, s = 0;
@@ -292,31 +326,29 @@ function drawCounts() {
 
 // ---------- player ----------
 const A = $("audio");
-let token = 0, url = null, cur = null, ctx = null;
-async function select(p, autoplay = $("b-auto").checked) {
+let token = 0, cur = null, ctx = null;
+// Synchronous up to A.play(), so a tap counts as the user gesture that iOS needs.
+function select(p, autoplay = $("b-auto").checked) {
   if (!S.rows.length) return;
   p = Math.max(0, Math.min(S.rows.length - 1, p));
   S.sel = p; scrollToRow(p); renderRows();
-  const i = S.rows[p], t = ++token;
+  const i = S.rows[p], t = ++token, src = audioUrl(i);
   showMeta(i);
-  A.pause();
   cur = { i, ab: null };
-  let buf;
-  try {
-    const r = await fetch(`/audio/${cat.split[C.split[i]]}/${ids[i]}.flac`);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    buf = await r.arrayBuffer();
-  } catch (e) { if (t === token) clearViz(`no audio: ${e.message}`); return; }
-  if (t !== token) return;
-  if (url) URL.revokeObjectURL(url);
-  url = URL.createObjectURL(new Blob([buf], { type: "audio/flac" }));
-  A.src = url;
+  A.src = src;
   if (autoplay) A.play().catch(() => {});
+  loadViz(i, src, t);
+}
+async function loadViz(i, src, t) {
   try {
+    const r = await fetch(src);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const buf = await r.arrayBuffer();
+    if (t !== token) return;
     const ab = await decode(buf, C.sr[i]);
     if (t !== token) return;
     cur.ab = ab; drawViz();
-  } catch (e) { if (t === token) clearViz("decode failed"); }
+  } catch (e) { if (t === token) clearViz(`no audio: ${e.message}`); }
 }
 async function decode(buf, sr) {
   try { return await new OfflineAudioContext(1, 1, sr > 0 ? sr : 16000).decodeAudioData(buf.slice(0)); }
@@ -324,11 +356,10 @@ async function decode(buf, sr) {
 }
 function showMeta(i) {
   const L = cat.label[C.label[i]], sys = cat.system[C.system[i]];
+  $("meta-sum").innerHTML = `${ids[i]} · <span class="${esc(L)}">${esc(L)}</span> · ${sys === "-" ? "–" : esc(sys)} · ${cat.speaker[C.speaker[i]]} · ${fmt(C.dur[i], 2)} s`;
   const kv = [
-    ["id", ids[i]], ["label", `<span class="${esc(L)}">${esc(L)}</span>`],
-    ["split", cat.split[C.split[i]]], ["system", sys === "-" ? "– (human)" : esc(sys)],
-    ["speaker", cat.speaker[C.speaker[i]]], ["gender", cat.gender[C.gender[i]]],
-    ...NUM.map((f) => [f.short, `${fmt(C[f.k][i], f.dec)} ${f.unit}`]),
+    ["split", cat.split[C.split[i]]], ["gender", cat.gender[C.gender[i]]],
+    ...NUM.filter((f) => f.k !== "dur").map((f) => [f.short, `${fmt(C[f.k][i], f.dec)} ${f.unit}`]),
     ["sr", C.sr[i]], ["dup", C.dup[i]], ["hash", hashes[i]],
   ];
   if (errs[i]) kv.push(["error", esc(errs[i])]);
@@ -338,9 +369,9 @@ function showMeta(i) {
 function clearViz(msg) {
   for (const id of ["wave", "spec"]) fit($(id)).clearRect(0, 0, $(id).width, $(id).height);
   const g = $("spec").getContext("2d");
-  g.fillStyle = "#ccc"; g.font = `${12 * (window.devicePixelRatio || 1)}px system-ui`; g.fillText(msg, 10, 24);
+  g.fillStyle = "#ccc"; g.font = `${12 * dpr()}px system-ui`; g.fillText(msg, 10, 24);
 }
-function drawViz() { if (cur && cur.ab) { drawWave(cur.ab, cur.i); drawSpec(cur.ab, C.sr[cur.i]); } }
+function drawViz() { if (cur && cur.ab && $("spec").clientWidth) { drawWave(cur.ab, cur.i); drawSpec(cur.ab, C.sr[cur.i]); } }
 function drawWave(ab, i) {
   const cv = $("wave"), g = fit(cv), W = cv.width, H = cv.height, x = ab.getChannelData(0);
   g.clearRect(0, 0, W, H);
@@ -416,11 +447,11 @@ function drawSpec(ab, sr) {
     img.data[p] = LUT[t * 3]; img.data[p + 1] = LUT[t * 3 + 1]; img.data[p + 2] = LUT[t * 3 + 2]; img.data[p + 3] = 255;
   }
   og.putImageData(img, 0, 0);
-  const cv = $("spec"), g = fit(cv), W = cv.width, H = cv.height, dpr = window.devicePixelRatio || 1;
+  const cv = $("spec"), g = fit(cv), W = cv.width, H = cv.height;
   g.imageSmoothingEnabled = true; g.drawImage(off, 0, 0, W, H);
-  g.fillStyle = "rgba(255,255,255,0.75)"; g.font = `${10 * dpr}px system-ui`;
+  g.fillStyle = "rgba(255,255,255,0.75)"; g.font = `${10 * dpr()}px system-ui`;
   const fTop = (nb / nfft) * rate;
-  for (let k = 1; k * 1000 < fTop; k++) if (k % 2 === 0) g.fillText(`${k}k`, 3 * dpr, H - (k * 1000 / fTop) * H + 4 * dpr);
+  for (let k = 2; k * 1000 < fTop; k += 2) g.fillText(`${k}k`, 3 * dpr(), H - ((k * 1000) / fTop) * H + 4 * dpr());
 }
 function tick() {
   if (!A.duration || !isFinite(A.duration)) return;
@@ -433,36 +464,60 @@ const togglePlay = () => { if (A.src) A.paused ? A.play().catch(() => {}) : A.pa
 const randomPick = () => { if (S.rows.length) select(Math.floor(Math.random() * S.rows.length)); };
 async function setFlag(note) {
   if (!cur) return;
-  const r = await fetch("/flags", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: ids[cur.i], note }) });
-  if (!r.ok) return;
-  S.flags = new Map(Object.entries(await r.json()));
-  $("flag-note").value = S.flags.get(ids[cur.i]) ?? "";
+  const id = ids[cur.i];
+  if (serverFlags) {
+    const r = await fetch("flags", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, note }) });
+    if (!r.ok) return;
+    S.flags = new Map(Object.entries(await r.json()));
+  } else {
+    if (note == null) S.flags.delete(id); else S.flags.set(id, note);
+    try { localStorage.setItem(FLAG_KEY, JSON.stringify(Object.fromEntries(S.flags))); } catch { /* private mode */ }
+  }
+  $("flag-note").value = S.flags.get(id) ?? "";
   renderRows(); updateStats();
 }
+function exportFlags() {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(Object.fromEntries(S.flags), null, 1)], { type: "application/json" }));
+  a.download = "flags.json"; a.click();
+}
 
-// ---------- events ----------
+// ---------- layout + events ----------
+function layout() {
+  $("meta-box").open = !mobile();
+  layoutRows(); drawHists(); drawViz();
+}
+function setTab(t) {
+  document.body.dataset.tab = t;
+  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === t));
+  if (t === "stats") drawHists(); else { layoutRows(); drawViz(); }
+}
 function bind() {
-  let qt;
+  let qt, rt;
   for (const id of ["f-split", "f-label", "f-system", "f-gender", "f-flag", "f-dup"]) $(id).addEventListener("change", apply);
   $("f-q").addEventListener("input", () => { clearTimeout(qt); qt = setTimeout(apply, 150); });
+  $("f-sort").addEventListener("change", () => setSort($("f-sort").value));
+  $("f-dir").addEventListener("click", () => setSort(S.sortKey, -S.sortDir));
   $("reset").addEventListener("click", () => {
     for (const id of ["f-split", "f-label", "f-system", "f-gender", "f-q"]) $(id).value = "";
     $("f-flag").checked = $("f-dup").checked = false; S.ranges = {}; apply();
   });
-  $("tbody").addEventListener("scroll", () => { $("thead").scrollLeft = $("tbody").scrollLeft; renderRows(); });
+  $("b-filters").addEventListener("click", () => {
+    const on = document.body.classList.toggle("show-filters");
+    $("b-filters").setAttribute("aria-expanded", on);
+    renderRows();
+  });
+  document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
+  $("tbody").addEventListener("scroll", () => { $("thead").scrollLeft = $("tbody").scrollLeft; renderRows(); }, { passive: true });
   $("thead").addEventListener("click", (e) => {
     const k = e.target.closest("span")?.dataset.k; if (!k) return;
-    const col = COLS.find((c) => c.k === k);
-    if (S.sortKey === k) S.sortDir = -S.sortDir; else { S.sortKey = k; S.sortDir = col.num ? -1 : 1; }
-    const id = S.sel >= 0 ? S.rows[S.sel] : -1;
-    sortRows(); S.sel = id >= 0 ? S.rows.indexOf(id) : -1;
-    renderHeader(); renderRows(); if (S.sel >= 0) scrollToRow(S.sel);
+    setSort(k, S.sortKey === k ? -S.sortDir : undefined);
   });
   $("rows").addEventListener("click", (e) => {
     const sp = e.target.closest("span"), row = e.target.closest(".r"); if (!row) return;
     const i = S.rows[+row.dataset.p];
-    if (sp?.dataset.k === "speaker") { $("f-q").value = cat.speaker[C.speaker[i]]; apply(); return; }
-    if (sp?.dataset.k === "system") { $("f-system").value = C.system[i]; apply(); return; }
+    if (!mobile() && sp?.dataset.k === "speaker") { $("f-q").value = cat.speaker[C.speaker[i]]; apply(); return; }
+    if (!mobile() && sp?.dataset.k === "system") { $("f-system").value = C.system[i]; apply(); return; }
     select(+row.dataset.p);
   });
   $("counts").addEventListener("click", (e) => {
@@ -475,6 +530,7 @@ function bind() {
   $("b-rand").addEventListener("click", randomPick);
   $("flag-save").addEventListener("click", () => setFlag($("flag-note").value.trim() || "flagged"));
   $("flag-clear").addEventListener("click", () => setFlag(null));
+  $("flag-export").addEventListener("click", exportFlags);
   $("viz").addEventListener("click", (e) => {
     const r = $("viz").getBoundingClientRect();
     if (A.duration && isFinite(A.duration)) { A.currentTime = ((e.clientX - r.left) / r.width) * A.duration; tick(); }
@@ -483,11 +539,11 @@ function bind() {
   A.addEventListener("pause", () => { $("b-play").textContent = "▶"; tick(); });
   A.addEventListener("loadedmetadata", tick);
   A.addEventListener("ended", () => { if ($("b-chain").checked && S.sel < S.rows.length - 1) select(S.sel + 1, true); });
-  let rt;
-  window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { drawHists(); renderRows(); drawViz(); }, 100); });
+  MQ.addEventListener("change", layout);
+  window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(layout, 100); });
   document.addEventListener("keydown", (e) => {
     const el = document.activeElement, tag = el?.tagName;
-    if (tag === "INPUT" && el.type !== "checkbox" || tag === "SELECT") {
+    if ((tag === "INPUT" && el.type !== "checkbox") || tag === "SELECT") {
       if (e.key === "Escape") el.blur();
       if (e.key === "Enter" && el === $("flag-note")) { $("flag-save").click(); el.blur(); }
       return;

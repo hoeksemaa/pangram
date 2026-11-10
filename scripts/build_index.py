@@ -164,7 +164,7 @@ def main() -> None:
     cols["err"] = [r["err"] for r in rows]
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    doc = {"dataset": "ASVspoof 2019 LA", "n": len(rows), "cat": cats, "cols": cols}
+    doc = {"dataset": "ASVspoof 2019 LA", "n": len(rows), "audio": {"base": "audio", "ext": "flac"}, "cat": cats, "cols": cols}
     args.out.write_text(json.dumps(doc, separators=(",", ":")))
 
     # Short summary for the terminal.

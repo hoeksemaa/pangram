@@ -2,23 +2,31 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ASVspoof 2019 LA viewer</title>
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="style.css">
 <link rel="icon" href="data:,">
 </head>
-<body>
+<body data-tab="clips">
 <header>
-  <b>ASVspoof 2019 LA</b>
-  <select id="f-split"></select>
-  <select id="f-label"></select>
-  <select id="f-system"></select>
-  <select id="f-gender"></select>
-  <input id="f-q" type="search" placeholder="id / speaker / hash  (/)">
-  <label title="only flagged clips"><input id="f-flag" type="checkbox">flagged</label>
-  <label title="only clips whose audio is identical to another clip"><input id="f-dup" type="checkbox">dups</label>
-  <button id="reset">reset</button>
-  <span id="stats"></span>
+  <div class="bar">
+    <b>ASVspoof 2019 LA</b>
+    <span id="stats"></span>
+    <button id="b-filters" class="only-m" aria-expanded="false">filters</button>
+  </div>
+  <div id="filters">
+    <select id="f-split" aria-label="split"></select>
+    <select id="f-label" aria-label="label"></select>
+    <select id="f-system" aria-label="system"></select>
+    <select id="f-gender" aria-label="gender"></select>
+    <input id="f-q" type="search" placeholder="id / speaker / hash" aria-label="search">
+    <label title="only flagged clips"><input id="f-flag" type="checkbox">flagged</label>
+    <label title="only clips whose audio is identical to another clip"><input id="f-dup" type="checkbox">dups</label>
+    <span class="sort"><select id="f-sort" aria-label="sort by"></select><button id="f-dir" title="sort direction">▲</button></span>
+    <button id="reset">reset</button>
+  </div>
+  <div id="note"></div>
+  <nav id="tabs" class="only-m"><button data-tab="clips" class="on">clips</button><button data-tab="stats">stats</button></nav>
 </header>
 <main>
   <section id="left">
@@ -30,29 +38,30 @@
     <div id="tbody"><div id="spacer"></div><div id="rows"></div></div>
   </section>
   <section id="right">
-    <div id="meta"></div>
+    <details id="meta-box"><summary id="meta-sum"></summary><div id="meta"></div></details>
     <div id="viz">
       <canvas id="wave"></canvas>
       <canvas id="spec"></canvas>
       <div id="head"></div>
     </div>
     <div id="ctrl">
-      <button id="b-prev" title="previous (k / ↑)">◀</button>
-      <button id="b-play" title="play / pause (space)">▶</button>
-      <button id="b-next" title="next (j / ↓)">▶▶</button>
+      <button id="b-prev" title="previous (k / ↑)" aria-label="previous">◀</button>
+      <button id="b-play" title="play / pause (space)" aria-label="play">▶</button>
+      <button id="b-next" title="next (j / ↓)" aria-label="next">▶▶</button>
       <button id="b-rand" title="random clip in the current filter (r)">random</button>
-      <label title="play when a clip is selected (a)"><input id="b-auto" type="checkbox" checked>autoplay</label>
+      <label title="play when a clip is selected (a)"><input id="b-auto" type="checkbox" checked>auto</label>
       <label title="go to the next clip when one ends (c)"><input id="b-chain" type="checkbox">chain</label>
       <span id="time"></span>
     </div>
     <div id="flagbox">
-      <input id="flag-note" placeholder="note  (f)">
+      <input id="flag-note" placeholder="note (f)" aria-label="flag note">
       <button id="flag-save" title="save flag (enter)">flag</button>
       <button id="flag-clear">unflag</button>
+      <button id="flag-export" title="download your flags as JSON" hidden>export</button>
     </div>
-    <audio id="audio"></audio>
+    <audio id="audio" preload="auto"></audio>
   </section>
 </main>
-<script src="/app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

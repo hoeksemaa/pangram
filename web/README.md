@@ -1,6 +1,6 @@
 # Web app
 
-Phone-first site: home screen and three tabs. **Data** explores ASVspoof 2019 LA. **Model** and **Try** wait for a model.
+**Audio Detector**, a phone-first research site: home screen and three tabs. **Data** explores ASVspoof 2019 LA. **Model** and **Try** wait for a model.
 
 ```
 uv run scripts/build_index.py   # once: labels + auditory features -> data/index/

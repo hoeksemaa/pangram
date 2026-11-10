@@ -82,12 +82,4 @@ function route() {
 }
 window.addEventListener("hashchange", route);
 
-// A tapped card lifts, then the tab opens.
-document.querySelectorAll(".card").forEach((card) => card.addEventListener("click", (e) => {
-  if (still || e.metaKey || e.ctrlKey) return;
-  e.preventDefault();
-  card.classList.add("picked");
-  setTimeout(() => { location.hash = card.getAttribute("href"); card.classList.remove("picked"); }, 220);
-}));
-
 route();

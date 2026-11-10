@@ -94,7 +94,7 @@ body[data-screen="data"] #data { display: flex; }
 .btn-gold { background: var(--gold); color: #1b1300; }
 .btn-flag { background: var(--flag); color: #24051b; }
 .btn-sm { min-height: 34px; padding: 0 10px; font-size: 15px; }
-.btn svg, #nav svg { width: 16px; height: 16px; display: block; }
+.btn svg { width: 16px; height: 16px; display: block; }
 select, input[type="search"], #flag-note {
   font: inherit; font-size: 16px; /* 16px stops iOS from zooming on focus */
   color: var(--ink); background: var(--panel-2);
@@ -110,19 +110,10 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 .tog input:checked + span { background: var(--gold); border-color: var(--gold); color: #1b1300; }
 .tog input:focus-visible + span { outline: 2px solid var(--human); }
 
-/* ---------- nav: home + three tabs ---------- */
-#nav {
-  display: flex; gap: 6px; padding: 8px 10px; padding-top: max(8px, env(safe-area-inset-top));
-  background: rgba(10, 15, 28, 0.9); border-bottom: 2px solid var(--edge);
-}
-body[data-screen="home"] #nav { display: none; }
-#nav a {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-  height: 40px; color: var(--ink-2); text-decoration: none; font-weight: 600;
-  background: var(--panel); border: 2px solid var(--edge); border-radius: 8px; box-shadow: 0 3px 0 var(--shadow);
-}
-#nav a.nav-home { flex: 0 0 44px; color: var(--ink); }
-#nav a.on { color: #1b1300; background: var(--gold); border-color: var(--gold); }
+/* ---------- home button (each tab) ---------- */
+.home-btn { flex: 0 0 auto; width: 40px; padding: 0; }
+.home-btn svg { width: 18px; height: 18px; }
+#model .home-btn, #try .home-btn { margin-top: max(12px, env(safe-area-inset-top)); }
 
 /* ---------- home ---------- */
 #home .col { flex: 1; display: flex; flex-direction: column; justify-content: center; padding-top: max(36px, env(safe-area-inset-top)); text-align: center; }
@@ -169,14 +160,14 @@ body[data-screen="home"] #nav { display: none; }
 @keyframes sway { 0%, 100% { rotate: -1.2deg; } 50% { rotate: 1.2deg; } }
 
 /* ---------- under construction ---------- */
-.uc { margin-top: 32px; padding: 28px 20px 26px; text-align: center; }
+.uc { margin-top: 16px; padding: 28px 20px 26px; text-align: center; }
 .uc-sign svg { display: block; width: 128px; margin: 0 auto; filter: drop-shadow(0 4px 0 var(--shadow)); }
 .uc h2 { margin: 18px 0 8px; font-size: 26px; color: var(--gold); text-shadow: 0 3px 0 var(--shadow); }
 .uc p { margin: 0 0 22px; color: var(--ink-2); }
 
 /* ---------- Data tab (mobile: player on top, list below; stats on its own tab) ---------- */
 #data { flex: 1; min-height: 0; flex-direction: column; }
-.ex-head { padding: 10px 10px 0; }
+.ex-head { padding: 10px 10px 0; padding-top: max(10px, env(safe-area-inset-top)); }
 .ex-bar { display: flex; align-items: center; gap: 8px; }
 .chips { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {
@@ -277,11 +268,10 @@ body[data-screen="home"] #nav { display: none; }
 /* ---------- desktop ---------- */
 @media (min-width: 900px) {
   .only-m { display: none !important; }
-  #nav { justify-content: center; }
-  #nav a { flex: 0 1 170px; }
   .col { max-width: 560px; }
   .ex-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 14px 0; }
   .ex-bar { display: contents; }
+  .home-btn { order: -1; }
   #stats { order: 2; flex: 0 0 auto; margin-left: auto; }
   #filters { display: flex; flex: 1 1 auto; padding: 0; }
   #filters select, #f-q, .sort { flex: 0 0 auto; }

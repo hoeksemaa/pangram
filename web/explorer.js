@@ -184,7 +184,8 @@ function updateStats() {
   const [h, a] = S.nhna;
   const all = S.rows.length === N ? N.toLocaleString() : `${S.rows.length.toLocaleString()}/${N.toLocaleString()}`;
   $("stats").innerHTML = `<span class="chip" title="clips shown">${all}</span><span class="chip h" title="human clips shown">${h.toLocaleString()}</span>`
-    + `<span class="chip a" title="AI clips shown">${a.toLocaleString()}</span><span class="chip f" title="flagged clips">⚑ ${S.flags.size}</span>`;
+    + `<span class="chip a" title="AI clips shown">${a.toLocaleString()}</span>`
+    + (S.flags.size ? `<span class="chip f" title="flagged clips">⚑ ${S.flags.size}</span>` : "");
 }
 
 // ---------- table ----------

@@ -76,11 +76,6 @@ function route() {
   const name = (location.hash.match(/^#\/(\w+)/) || [])[1];
   const screen = SCREENS.includes(name) ? name : "home";
   document.body.dataset.screen = screen;
-  document.querySelectorAll("#nav [data-screen]").forEach((a) => {
-    const on = a.dataset.screen === screen;
-    a.classList.toggle("on", on);
-    if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
-  });
   hero.run(screen === "home");
   if (screen === "data") initExplorer().then(showExplorer, () => {});
   window.scrollTo(0, 0);

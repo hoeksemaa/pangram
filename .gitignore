@@ -1,0 +1,46 @@
+# Audio data (too big for git; scripts and manifests rebuild it)
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.opus
+*.m4a
+*.aac
+data/raw/
+data/generated/
+
+# Model weights and caches
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.safetensors
+.cache/
+hf_cache/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Frontend
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Secrets (API keys for AI audio models and detectors)
+.env
+.env*.local
+
+# Vercel
+.vercel
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store

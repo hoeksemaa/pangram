@@ -2,7 +2,7 @@
 
 For each run in MODELS with runs/<run>/model.onnx (model/export.py):
 - site/models/<run>.onnx
-- site/models.json: description, loss curves, results, decision threshold.
+- site/models.json: source link, loss curves, results, decision threshold.
 Plus 10 clips (5 from LA train, which the models learned from; 5 from In-the-Wild, which they never
 heard), silence trimmed like training, as site/try/*.wav, with each model's Python score (the
 browser must match it). In-the-Wild is CC BY-SA 4.0 (Mueller et al. 2022); the trimmed clips stay under it.
@@ -26,20 +26,10 @@ sys.path.insert(0, str(REPO / "model"))
 
 # Shown on the Model tab, in this order. Runs without model.onnx are left out.
 MODELS = {
-    "lcnn_trim": {
-        "name": "LCNN",
-        "about": "A light convolutional network, the ASVspoof challenge baseline family. "
-                 "Max-feature-map layers keep the stronger of each pair of features.",
-    },
-    "resnet_trim": {
-        "name": "ResNet-18",
-        "about": "A deeper network: 8 residual blocks in 4 stages, with skip links that keep deep "
-                 "training stable. The model from the OC-Softmax paper (Zhang et al. 2021).",
-    },
+    "lcnn_trim": {"name": "LCNN", "class": "LCNN"},
+    "resnet_trim": {"name": "ResNet-18", "class": "ResNet18"},
 }
-COMMON = ("Both read LFCC features: the spectrum in 20 linear bands, plus how fast they change. "
-          "Trained from scratch on ASVspoof 2019 LA train (25,380 clips, 20 speakers), silence trimmed, "
-          "3 s windows, class-weighted loss. The kept checkpoint has the lowest validation loss.")
+SOURCE = "https://github.com/hoeksemaa/pangram/blob/main/model/nets.py"
 BASELINES = {"baseline_silence": "Silence only (untrimmed)", "baseline_features": "17 voice features"}
 SEED = 0
 # Median loudness of trimmed LA train clips (human and AI alike: -16.9 dBFS). Recordings are scaled to it.
@@ -48,6 +38,12 @@ TARGET_RMS_DB = -17.0
 
 def r3(x):
     return None if x is None else round(float(x), 4)
+
+
+def source(cls: str) -> str:
+    """GitHub link to the line where model/nets.py defines cls."""
+    lines = (REPO / "model" / "nets.py").read_text().splitlines()
+    return f"{SOURCE}#L{next(i for i, s in enumerate(lines, 1) if s.startswith(f'class {cls}('))}"
 
 
 def summary(r: dict) -> dict:
@@ -130,7 +126,7 @@ def build_models(out: Path) -> None:
             c["scores"][r] = r3(sess.run(None, {"wav": windows(x)})[0].mean())
         t = res["test"]
         models.append({
-            "id": r, **MODELS[r], "parameters": res["parameters"],
+            "id": r, "name": MODELS[r]["name"], "source": source(MODELS[r]["class"]), "parameters": res["parameters"],
             "mb": round((run / "model.onnx").stat().st_size / 1e6, 1),
             "threshold": r3(res["validation"]["fixed"]["threshold"]),
             "best_epoch": res["best_check"]["epoch"], "train_minutes": res["train_minutes"], "stopped": res["stopped"],
@@ -146,7 +142,7 @@ def build_models(out: Path) -> None:
         if p.exists():
             res = json.loads(p.read_text())
             baselines.append({"name": label, "test": summary(res["test"])})
-    doc = {"common": COMMON, "models": models, "baselines": baselines,
+    doc = {"models": models, "baselines": baselines,
            "window_s": 3.0, "sr": 16000, "target_rms_db": TARGET_RMS_DB, "clips": clips}
     (out / "models.json").write_text(json.dumps(doc, separators=(",", ":")))
     print(f"models: {', '.join(runs)}")

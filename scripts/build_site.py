@@ -23,7 +23,7 @@ import soundfile as sf
 from build_models import build_models
 
 REPO = Path(__file__).resolve().parent.parent
-WEB_FILES = ["index.html", "app.js", "explorer.js", "model.js", "style.css"]
+WEB_FILES = ["index.html", "app.js", "explorer.js", "icons.js", "model.js", "style.css"]
 
 
 def main() -> None:

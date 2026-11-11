@@ -204,15 +204,15 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 .r.err { text-decoration: line-through; }
 
 /* player */
-#right { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+#right { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
 #clip-head { display: flex; align-items: center; gap: 10px; font-size: 20px; }
 #text { margin: 0; font-size: 17px; line-height: 1.4; }
 #text .dim { font-size: inherit; }
 .dim { color: var(--ink-2); font-size: 15px; }
-/* Phone: the spectrogram is a square in the middle (about a third of the screen height). */
-#viz { align-self: center; width: min(100%, 31dvh); position: relative; cursor: pointer; overflow: hidden; border: 2px solid var(--edge); border-radius: 6px; background: #000; }
+/* Phone: the spectrogram is full width and about a third of the screen height. */
+#viz { position: relative; cursor: pointer; overflow: hidden; border: 2px solid var(--edge); border-radius: 6px; background: #000; }
 #wave { display: block; width: 100%; height: 40px; background: var(--panel-2); }
-#spec { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; background: #000; }
+#spec { display: block; width: 100%; height: 33dvh; background: #000; }
 #head { position: absolute; top: 0; bottom: 0; left: 0; width: 2px; display: none; pointer-events: none; background: var(--gold); box-shadow: 0 0 6px var(--gold); }
 #ctrl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 #ctrl .btn { min-width: 44px; padding: 0 10px; }
@@ -267,9 +267,8 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
   #data[data-tab] #left { display: block; order: 1; }
   #data[data-tab] #mid { display: flex; order: 2; }
   #data[data-tab] #right { display: flex; order: 3; overflow-y: auto; }
-  #viz { align-self: stretch; width: auto; }
   #wave { height: 70px; }
-  #spec { height: 260px; aspect-ratio: auto; }
+  #spec { height: 260px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

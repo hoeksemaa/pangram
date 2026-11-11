@@ -9,6 +9,7 @@
 data/raw/
 data/generated/
 data/index/
+data/transcripts/
 *.zip
 *.tar
 *.tar.gz

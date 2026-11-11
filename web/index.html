@@ -59,7 +59,7 @@
       <select id="f-label" aria-label="label"></select>
       <select id="f-system" aria-label="AI system"></select>
       <select id="f-gender" aria-label="gender"></select>
-      <input id="f-q" type="search" placeholder="search id" aria-label="search id">
+      <input id="f-q" type="search" inputmode="numeric" placeholder="search clip #" aria-label="search clip number">
       <button id="reset" class="btn btn-sm">Reset</button>
     </div>
     <nav id="ex-tabs" class="seg only-m"><button data-tab="clips" class="on">Clips</button><button data-tab="stats">Stats</button></nav>
@@ -71,7 +71,7 @@
       <p id="note"></p>
     </section>
     <section id="mid" class="panel">
-      <div id="thead"><span>id</span><span>label</span></div>
+      <div id="thead"><span>clip</span><span>label</span></div>
       <div id="tbody"><div id="spacer"></div><div id="rows"></div></div>
     </section>
     <section id="right" class="panel">
@@ -88,8 +88,7 @@
         <button id="b-play" class="btn btn-gold" title="play / pause (space)" aria-label="play">▶</button>
         <button id="b-next" class="btn" title="next (j / ↓)" aria-label="next">▶▶</button>
         <button id="b-rand" class="btn" title="random clip in the current filter (r)" aria-label="random"><span data-pix="dice"></span></button>
-        <label class="tog" title="play when a clip is selected (a)"><input id="b-auto" type="checkbox" checked><span>auto</span></label>
-        <label class="tog" title="go to the next clip when one ends (c)"><input id="b-chain" type="checkbox"><span>chain</span></label>
+        <label class="tog" title="go to the next clip when one ends (c)"><input id="b-chain" type="checkbox" autocomplete="off"><span>chain</span></label>
       </div>
       <audio id="audio" preload="auto"></audio>
     </section>

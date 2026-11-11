@@ -62,6 +62,8 @@ function domain(arr) {
   return [lo, hi];
 }
 const audioUrl = (i) => `${doc.audio.base}/${cat.split[C.split[i]]}/${ids[i]}.${doc.audio.ext}`;
+// Display only: clip number 001, 002, ... in index order (the dataset id stays in the hover title).
+const num = (i) => String(i + 1).padStart(String(N).length, "0");
 
 // ---------- load ----------
 let loading = null;
@@ -74,8 +76,12 @@ const visible = () => document.body.dataset.screen === "data";
 
 async function load() {
   $("stats").textContent = "loading…";
-  const d = await fetch("index.json").then((r) => { if (!r.ok) throw new Error(`index.json ${r.status}`); return r.json(); });
-  doc = d; N = d.n; cat = d.cat; ids = d.cols.id; errs = d.cols.err; texts = d.cols.text || null;
+  // transcripts.json (optional, display only): Whisper's guess of what each clip says.
+  const [d, tr] = await Promise.all([
+    fetch("index.json").then((r) => { if (!r.ok) throw new Error(`index.json ${r.status}`); return r.json(); }),
+    fetch("transcripts.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+  ]);
+  doc = d; N = d.n; cat = d.cat; ids = d.cols.id; errs = d.cols.err; texts = tr && tr.text ? tr.text : null;
   doc.audio = doc.audio || { base: "audio", ext: "flac" };
   for (const k of CAT_KEYS) C[k] = Uint16Array.from(d.cols[k]);
   for (const k of [...NUM.map((f) => f.k), "sr"]) {
@@ -106,7 +112,7 @@ function initFilters() {
 }
 function readF() {
   const n = (id) => ($(id).value === "" ? -1 : +$(id).value);
-  return { split: n("f-split"), label: n("f-label"), system: n("f-system"), gender: n("f-gender"), q: $("f-q").value.trim().toUpperCase() };
+  return { split: n("f-split"), label: n("f-label"), system: n("f-system"), gender: n("f-gender"), q: $("f-q").value.trim() };
 }
 
 // One pass over all clips: list rows, class counts, histograms (each ignores its own
@@ -125,7 +131,7 @@ function apply() {
     const lab = C.label[i];
     if (F.label >= 0 && lab !== F.label) continue;
     if (F.gender >= 0 && C.gender[i] !== F.gender) continue;
-    if (F.q && !ids[i].includes(F.q)) continue;
+    if (F.q && !num(i).includes(F.q)) continue;
     let fails = 0, failed = -1;
     for (const r of ranges) {
       const v = r.v[i];
@@ -158,7 +164,7 @@ function updateStats() {
     + `<span class="chip h" title="human clips shown">${n(h)} human</span><span class="chip a" title="AI clips shown">${n(a)} AI</span>`;
 }
 
-// ---------- clip list: id and label ----------
+// ---------- clip list: number and label ----------
 function layoutRows() {
   $("spacer").style.height = `${S.rows.length * rowH()}px`;
   renderRows();
@@ -170,8 +176,8 @@ function renderRows() {
   let html = "";
   for (let p = a; p < b; p++) {
     const i = S.rows[p], L = cat.label[C.label[i]];
-    html += `<div class="r${p === S.sel ? " sel" : ""}${errs[i] ? " err" : ""}" data-p="${p}" style="top:${p * h}px;height:${h}px">`
-      + `<span class="id">${ids[i]}</span><span class="lab ${esc(L)}">${esc(labelName(L))}</span></div>`;
+    html += `<div class="r${p === S.sel ? " sel" : ""}${errs[i] ? " err" : ""}" data-p="${p}" title="${ids[i]}" style="top:${p * h}px;height:${h}px">`
+      + `<span class="id">${num(i)}</span><span class="lab ${esc(L)}">${esc(labelName(L))}</span></div>`;
   }
   $("rows").innerHTML = html;
 }
@@ -276,7 +282,7 @@ function drawCounts() {
 const A = $("audio");
 let token = 0, cur = null, ctx = null;
 // Synchronous up to A.play(), so a tap counts as the user gesture that iOS needs.
-function select(p, autoplay = $("b-auto").checked) {
+function select(p, autoplay = true) {
   if (!S.rows.length) return;
   p = Math.max(0, Math.min(S.rows.length - 1, p));
   S.sel = p; scrollToRow(p); renderRows();
@@ -289,10 +295,10 @@ function select(p, autoplay = $("b-auto").checked) {
 }
 function showClip(i) {
   const L = cat.label[C.label[i]];
-  $("clip-head").innerHTML = `<span class="badge ${esc(L)}">${esc(labelName(L))}</span><b>${ids[i]}</b>`;
-  const text = texts && texts[i];
+  $("clip-head").innerHTML = `<span class="badge ${esc(L)}">${esc(labelName(L))}</span><b title="${ids[i]}">${num(i)}</b>`;
+  const text = texts && texts[ids[i]];
   $("text").hidden = !text;
-  $("text").textContent = text ? `“${text}”` : "";
+  $("text").innerHTML = text ? `<span class="dim">Whisper's guess</span>“${esc(text)}”` : "";
 }
 async function loadViz(i, src, t) {
   try {
@@ -453,7 +459,7 @@ function bind() {
       j: () => select(S.sel + 1), ArrowDown: () => select(S.sel + 1),
       k: () => select(S.sel - 1), ArrowUp: () => select(S.sel - 1),
       " ": togglePlay, r: randomPick, "/": () => $("f-q").focus(),
-      a: () => $("b-auto").click(), c: () => $("b-chain").click(),
+      c: () => $("b-chain").click(),
     };
     if (keys[e.key]) { e.preventDefault(); keys[e.key](); }
   });

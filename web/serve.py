@@ -18,6 +18,7 @@ STATIC = {
     "/style.css": ("style.css", "text/css; charset=utf-8"),
 }
 AUDIO_RE = re.compile(r"^/audio/(train|dev|eval)/(LA_[TDE]_A?\d+)\.flac$")
+TRANSCRIPTS = REPO / "data/transcripts/whisper-sample.json"  # optional, display only
 RANGE_RE = re.compile(r"^bytes=(\d*)-(\d*)$")
 
 
@@ -61,6 +62,8 @@ def make_handler(root: Path, index: Path):
                 self.send_file(HERE / name, ctype)
             elif path == "/index.json":
                 self.send_file(index, "application/json")
+            elif path == "/transcripts.json":
+                self.send_file(TRANSCRIPTS, "application/json")
             elif m := AUDIO_RE.match(path):
                 split, cid = m.groups()
                 self.send_file(root / f"ASVspoof2019_LA_{split}" / "flac" / f"{cid}.flac", "audio/flac", "max-age=86400")

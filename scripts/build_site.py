@@ -68,6 +68,11 @@ def main() -> None:
         "cols": {k: [v[i] for i in pick] for k, v in cols.items()},
     }
     (args.out / "index.json").write_text(json.dumps(site, separators=(",", ":")))
+    # Whisper's guess of what each clip says (scripts/transcribe_sample.py): display only, optional.
+    guesses = REPO / "data/transcripts/whisper-sample.json"
+    (args.out / "transcripts.json").unlink(missing_ok=True)
+    if guesses.exists():
+        shutil.copy(guesses, args.out / "transcripts.json")
     for name in WEB_FILES:
         shutil.copy(REPO / "web" / name, args.out / name)
 

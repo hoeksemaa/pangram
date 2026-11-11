@@ -8,6 +8,11 @@
 *.aac
 data/raw/
 data/generated/
+data/index/
+data/transcripts/
+*.zip
+*.tar
+*.tar.gz
 
 # Model weights and caches
 *.pt
@@ -44,3 +49,6 @@ dist/
 .vscode/
 .idea/
 .DS_Store
+
+# Static site build (sample audio is deployed by CLI, not stored in git)
+site/

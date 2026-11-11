@@ -269,7 +269,7 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 .m-h h3 { margin: 0; }
 .sys-info { margin-bottom: 12px; padding: 10px; background: var(--panel-2); border: 2px solid var(--edge); border-radius: 6px; }
 .sys-info p:first-child { margin-top: 0; }
-.sys-info dl { display: grid; grid-template-columns: 44px 1fr; gap: 4px 8px; margin: 10px 0 0; font-size: 16px; }
+.sys-info dl { display: grid; grid-template-columns: 44px 1fr; gap: 4px 8px; margin: 0; font-size: 16px; }
 .sys-info dt { color: var(--gold); }
 .sys-info dd { margin: 0; }
 .bars { display: grid; gap: 6px; margin-top: 4px; }

@@ -1,7 +1,8 @@
 // Model and Try tabs. Data: models.json (scripts/build_models.py).
 // Try runs the exported model (models/<run>.onnx) in the browser with ONNX Runtime Web:
 // audio at 16 kHz -> 3 s windows (a short clip is repeated) -> AI score per window -> mean.
-import { KIND, SYSTEMS } from "./explorer.js";
+import { SYSTEMS } from "./explorer.js";
+import { fillPix } from "./icons.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -35,12 +36,12 @@ export async function showModel() {
 
 function renderModel(d, m) {
   const r = m.results, g = m.fpr_per_gender;
-  const SAME = { A16: "A04", A19: "A06" }; // the same systems as in training
   const sys = Object.entries(m.per_system);
   const maxE = Math.max(...sys.map(([, v]) => v), 0.01);
   $("m-body").innerHTML = `
     <article class="panel m-card">
-      <h3>${esc(m.name)}</h3>
+      <div class="m-h"><h3>${esc(m.name)}</h3>
+        <a class="btn btn-sm" href="${esc(m.source)}" target="_blank" rel="noopener" title="${esc(m.name)} source code on GitHub">See model <span data-pix="ext"></span></a></div>
       <p class="m-meta">${m.parameters >= 1e6 ? `${(m.parameters / 1e6).toFixed(1)}M` : `${(m.parameters / 1000).toFixed(0)}k`} parameters · ${m.mb} MB · ${Math.round(m.train_minutes)} min training</p>
     </article>
 
@@ -64,9 +65,7 @@ function renderModel(d, m) {
       <div class="m-h"><h3>Test error by AI system</h3>
         <button id="m-sys-i" class="info-btn" aria-expanded="false" aria-controls="m-sys-info" title="what A07–A19 are" aria-label="what the AI systems are">i</button></div>
       <div id="m-sys-info" class="sys-info" hidden>
-        <p>The test split's AI systems (ASVspoof 2019 LA). Each makes fake speech of the same 67 speakers.</p>
-        ${Object.entries(KIND).map(([k, v]) => `<p class="m-dim">${k === "TTS + VC" ? "TTS + VC: " : ""}${esc(v)}</p>`).join("")}
-        <dl>${sys.map(([s]) => `<dt>${s}</dt><dd>${esc(SYSTEMS[s] || "")}${SAME[s] ? ` (same system as ${SAME[s]}, which is in training)` : ""}</dd>`).join("")}</dl>
+        <dl>${sys.map(([s]) => `<dt>${s}</dt><dd>${esc(SYSTEMS[s] || "")}</dd>`).join("")}</dl>
       </div>
       <div class="bars">${sys.map(([s, v]) => `
         <div class="bar-row" title="${s}: EER ${pct(v)}"><span class="bl">${s}</span>
@@ -82,6 +81,7 @@ function renderModel(d, m) {
           `<tr><td>${esc(k)}</td><td>${pct(v.eer)}</td><td>${pct(v.fpr)}</td></tr>`).join("")}
       </table>
     </section>` : ""}`;
+  fillPix($("m-body"));
   lossChart($("m-chart"), m);
   $("m-sys-i").onclick = () => {
     const open = $("m-sys-info").hidden;

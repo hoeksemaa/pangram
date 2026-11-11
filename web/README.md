@@ -1,6 +1,6 @@
 # Web app
 
-**Audio Detector**, a phone-first research site: home screen and four tabs. **Data** (clips and player) and **Stats** (feature histograms and counts) explore ASVspoof 2019 LA. **Model** (each trained model: what it is, loss curves, results) and **Try it** (run a model in the browser on 10 clips or a mic recording; % AI) use `model.js`. Home links: **See data** (dataset download page), **See source** (this repo on GitHub), and **John**.
+**Audio Detector**, a phone-first research site: home screen and four tabs. **Data** (clips and player) and **Stats** (feature histograms) explore ASVspoof 2019 LA. **Model** (each trained model: what it is, loss curves, results) and **Try it** (run a model in the browser on 10 clips or a mic recording; % AI) use `model.js`. Home links: **See data** (dataset download page), **See source** (this repo on GitHub), and **John**.
 
 ```
 uv run scripts/build_index.py   # once: labels + auditory features -> data/index/
@@ -25,4 +25,4 @@ uv run --with onnxruntime scripts/build_site.py && cd site && vercel deploy --pr
 - **Clips:** a number (001, 002, … in index order; display only, the dataset id is the hover title) and the label. Tap a clip to see its waveform and play it.
 - **Whisper's guess:** ASVspoof 2019 has no transcripts. `uv run scripts/transcribe_sample.py` guesses the text of each site clip (Whisper large-v3-turbo, MLX) into `data/transcripts/` (not in git); `build_site.py` copies it to `site/transcripts.json`. Display only: no feature or model reads it.
 - **Try it:** ONNX Runtime Web (jsDelivr) runs the model: 3 s windows, mean score. % AI = sigmoid(score − line); the line flags 1% of validation humans. Recordings: silence cut at the ends, scaled to the training clips' median loudness (−17 dBFS).
-- **Keys (Data tab):** `j`/`k` next/previous · `space` play · `r` random · `/` search · `c` chain · `i` clip details
+- **Keys (Data tab):** `j`/`k` next/previous · `space` play · `r` random · `c` chain · `i` clip details

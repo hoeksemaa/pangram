@@ -1,6 +1,7 @@
 // The app shell: home screen, four tabs (hash routes), pixel icons, and the hero waveform.
-// Data and Stats are two views of the explorer (explorer.js). Model and Try wait for a model.
+// Data and Stats are two views of the explorer (explorer.js). Model and Try it: model.js.
 import { initExplorer, showExplorer } from "./explorer.js";
+import { leaveTry, showModel, showTry } from "./model.js";
 
 const $ = (id) => document.getElementById(id);
 const SCREENS = ["home", "data", "stats", "model", "try"];
@@ -16,13 +17,8 @@ const ICONS = {
   mic: ["...###...", "..#####..", "..#####..", "..#####..", "..#####..", "#.#####.#", "#..###..#", ".#.....#.", "..#####..", "....#....", "..#####.."],
   ext: ["..#####", ".....##", "....###", "...##.#", "..##..#", ".##....", "##....."],
   dice: ["#########", "#.......#", "#.#...#.#", "#.......#", "#...#...#", "#.......#", "#.#...#.#", "#.......#", "#########"],
-  barrier: [
-    "..ww........ww..", "yykkyykkyykkyykk", "ykkyykkyykkyykky", "kkyykkyykkyykkyy",
-    "..ww........ww..", "..ww........ww..", "yykkyykkyykkyykk", "ykkyykkyykkyykky",
-    "kkyykkyykkyykkyy", "..ww........ww..", ".wwww......wwww.",
-  ],
 };
-const PALETTE = { y: "var(--gold)", k: "#14171c", w: "#c9d3db", h: "var(--human)", a: "var(--ai)" };
+const PALETTE = { h: "var(--human)", a: "var(--ai)" };
 
 function bars(heights, colors = "") {
   const H = Math.max(...heights);
@@ -82,6 +78,8 @@ function route() {
   $("data").dataset.tab = screen === "stats" ? "stats" : "clips";
   hero.run(screen === "home");
   if (view === "data") initExplorer().then(showExplorer, () => {});
+  if (screen === "model") showModel();
+  if (screen === "try") showTry(); else leaveTry();
   window.scrollTo(0, 0);
 }
 window.addEventListener("hashchange", route);

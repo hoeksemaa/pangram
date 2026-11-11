@@ -31,20 +31,20 @@
         <span class="item-text"><b>Stats</b></span>
         <span class="item-go" aria-hidden="true">›</span>
       </a>
-      <a class="item wip" href="#/model">
+      <a class="item" href="#/model">
         <span class="item-art" data-pix="chip"></span>
         <span class="item-text"><b>Model</b></span>
-        <span class="soon">soon</span>
+        <span class="item-go" aria-hidden="true">›</span>
       </a>
-      <a class="item wip" href="#/try">
+      <a class="item" href="#/try">
         <span class="item-art" data-pix="mic"></span>
-        <span class="item-text"><b>Try</b></span>
-        <span class="soon">soon</span>
+        <span class="item-text"><b>Try it</b></span>
+        <span class="item-go" aria-hidden="true">›</span>
       </a>
     </nav>
   </div>
   <footer class="credit">
-    <p>data: ASVspoof 2019 (ODC-By)</p>
+    <p>data: ASVspoof 2019 (ODC-By), In-the-Wild (CC BY-SA)</p>
     <div class="links">
       <a class="btn btn-sm" href="https://datashare.ed.ac.uk/handle/10283/3336" target="_blank" rel="noopener" title="ASVspoof 2019 download page (Edinburgh DataShare)">See data <span data-pix="ext"></span></a>
       <a class="btn btn-sm" href="https://github.com/hoeksemaa/pangram" target="_blank" rel="noopener" title="Source code on GitHub">See source <span data-pix="ext"></span></a>
@@ -105,27 +105,33 @@
   </div>
 </section>
 
-<!-- Model and Try: no model yet -->
+<!-- Model: each trained model, its loss curves and results (model.js) -->
 <section id="model" class="screen">
   <div class="col">
-    <a href="#/" class="btn btn-sm home-btn" aria-label="home" title="home"><span data-pix="home"></span></a>
-    <div class="uc panel">
-      <span class="uc-sign" data-pix="barrier"></span>
-      <h2>Under construction</h2>
-      <p>No model yet. Here you will see its scores, its accuracy on each AI system, and its mistakes.</p>
-      <a class="btn btn-gold" href="#/data">Explore the data</a>
-    </div>
+    <header class="pg-head">
+      <a href="#/" class="btn btn-sm home-btn" aria-label="home" title="home"><span data-pix="home"></span></a>
+      <h2>Model</h2>
+    </header>
+    <nav id="m-pick" class="seg" aria-label="model"></nav>
+    <div id="m-body"></div>
   </div>
 </section>
+
+<!-- Try it: run a model in the browser on a test clip or a recording (model.js) -->
 <section id="try" class="screen">
   <div class="col">
-    <a href="#/" class="btn btn-sm home-btn" aria-label="home" title="home"><span data-pix="home"></span></a>
-    <div class="uc panel">
-      <span class="uc-sign" data-pix="barrier"></span>
-      <h2>Under construction</h2>
-      <p>No model yet. Here you will pick a clip or upload your own voice, and the model will guess: human or AI.</p>
-      <a class="btn btn-gold" href="#/data">Explore the data</a>
+    <header class="pg-head">
+      <a href="#/" class="btn btn-sm home-btn" aria-label="home" title="home"><span data-pix="home"></span></a>
+      <h2>Try it</h2>
+      <select id="t-model" aria-label="model"></select>
+    </header>
+    <div id="t-slot" class="panel" aria-live="polite">
+      <p class="t-empty">Drag a clip here, tap one, or record your voice.</p>
     </div>
+    <button id="t-rec" class="btn btn-rec"><span class="dot" aria-hidden="true"></span><span id="t-rec-txt">Record</span></button>
+    <div id="t-clips" class="t-clips" aria-label="test clips"></div>
+    <p class="t-note">Over 50% = AI. The 50% line flags 1 in 100 human validation clips. Clips are random picks. In-the-Wild clips: Müller et al. 2022, CC BY-SA 4.0, silence trimmed.</p>
+    <audio id="t-audio" preload="auto"></audio>
   </div>
 </section>
 

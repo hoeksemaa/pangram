@@ -375,8 +375,8 @@ function drawLive(cv, cols, sec) {
 
 function setSlot(html) { $("t-slot").innerHTML = html; }
 const EMPTY = `<p class="t-empty">Drag a clip here, tap one, or record your voice.</p>`;
-const CLEAR = `<button class="btn btn-sm t-clear" aria-label="clear the recording" title="clear">×</button>`;
-// Empty the slot: stop a pending run and playback, free the recording.
+const CLEAR = `<button class="btn btn-sm t-clear" aria-label="clear" title="clear">×</button>`;
+// Empty the slot (clip or recording): stop a pending run and playback, free a recording.
 function clearSlot() {
   runId++;
   const A = $("t-audio");
@@ -385,13 +385,14 @@ function clearSlot() {
   A.dataset.src = "";
   if (cur && cur.url && cur.url.startsWith("blob:")) URL.revokeObjectURL(cur.url);
   cur = null;
+  document.querySelectorAll(".t-tile").forEach((t) => t.classList.remove("on"));
   setSlot(EMPTY);
 }
 let runId = 0;
 async function run() {
   const d = await initModels(), m = d.models.find((x) => x.id === $("t-model").value), c = cur, id = ++runId;
   const head = `<div class="t-head">${c.label ? `<span class="lab ${c.label === "AI" ? "ai" : "human"}">${c.label}</span>` : ""}<b>${esc(c.name)}</b>
-    <button class="btn btn-sm t-play" aria-label="play">▶</button>${c.label ? "" : CLEAR}</div><p class="t-sub">${esc(c.sub)}</p>`;
+    <button class="btn btn-sm t-play" aria-label="play">▶</button>${CLEAR}</div><p class="t-sub">${esc(c.sub)}</p>`;
   setSlot(`${head}<p class="t-wait">${ortP ? "Running" : "Loading"} ${esc(m.name)}…</p>`);
   bindPlay(c);
   try {

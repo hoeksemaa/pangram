@@ -1,6 +1,6 @@
 # Web app
 
-**Audio Detector**, a phone-first research site: home screen and three tabs. **Data** explores ASVspoof 2019 LA. **Model** and **Try** wait for a model.
+**Audio Detector**, a phone-first research site: home screen and four tabs. **Data** (clips and player) and **Stats** (feature histograms and counts) explore ASVspoof 2019 LA. **Model** and **Try** wait for a model. Home links: **See source** (dataset download page) and **John**.
 
 ```
 uv run scripts/build_index.py   # once: labels + auditory features -> data/index/
@@ -20,6 +20,6 @@ uv run scripts/build_site.py && cd site && vercel deploy --prod
 - **Text:** easy to read on a phone. Nothing under 15px; body 17px.
 - **Histograms:** drag to filter, tap a bar for one bin, × or double-click to clear.
 - **AUC:** pick one human and one AI clip at random; AUC is the chance that one feature alone tells which is which (0.5 = no clue, 1 = always). Tap it in the app. Amber (≥ 0.75) = a possible shortcut.
-- **Clips:** a number (001, 002, … in index order; display only, the dataset id is the hover title) and the label. Tap a clip to see its waveform and play it. **See source** opens the dataset download page.
+- **Clips:** a number (001, 002, … in index order; display only, the dataset id is the hover title) and the label. Tap a clip to see its waveform and play it.
 - **Whisper's guess:** ASVspoof 2019 has no transcripts. `uv run scripts/transcribe_sample.py` guesses the text of each site clip (Whisper large-v3-turbo, MLX) into `data/transcripts/` (not in git); `build_site.py` copies it to `site/transcripts.json`. Display only: no feature or model reads it.
 - **Keys (Data tab):** `j`/`k` next/previous · `space` play · `r` random · `/` search · `c` chain · `i` clip details

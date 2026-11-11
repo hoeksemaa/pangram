@@ -80,6 +80,7 @@ export function initExplorer() {
 }
 export function showExplorer() { layout(); }
 const visible = () => document.body.dataset.screen === "data";
+const onClips = () => visible() && $("data").dataset.tab === "clips"; // the player is on screen
 
 async function load() {
   $("stats").textContent = "loading…";
@@ -447,11 +448,6 @@ const randomPick = () => { if (S.rows.length) select(Math.floor(Math.random() * 
 
 // ---------- layout + events ----------
 function layout() { layoutRows(); drawHists(); drawViz(); }
-function setTab(t) {
-  $("data").dataset.tab = t;
-  document.querySelectorAll("#ex-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === t));
-  if (t === "stats") drawHists(); else { layoutRows(); drawViz(); }
-}
 function bind() {
   let qt, rt;
   for (const id of ["f-split", "f-label", "f-system", "f-gender"]) $(id).addEventListener("change", apply);
@@ -465,7 +461,6 @@ function bind() {
     $("b-filters").setAttribute("aria-expanded", on);
     renderRows();
   });
-  document.querySelectorAll("#ex-tabs button").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
   $("tbody").addEventListener("scroll", renderRows, { passive: true });
   $("rows").addEventListener("click", (e) => { const row = e.target.closest(".r"); if (row) select(+row.dataset.p); });
   $("counts").addEventListener("click", (e) => {
@@ -487,9 +482,9 @@ function bind() {
   A.addEventListener("ended", () => { if ($("b-chain").checked && S.sel < S.rows.length - 1) select(S.sel + 1, true); });
   MQ.addEventListener("change", () => visible() && layout());
   window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => visible() && layout(), 100); });
-  window.addEventListener("hashchange", () => { if (!visible()) A.pause(); });
+  window.addEventListener("hashchange", () => { if (!onClips()) A.pause(); });
   document.addEventListener("keydown", (e) => {
-    if (!visible()) return;
+    if (!onClips()) return;
     const el = document.activeElement, tag = el?.tagName;
     if ((tag === "INPUT" && el.type !== "checkbox") || tag === "SELECT") { if (e.key === "Escape") el.blur(); return; }
     if (e.metaKey || e.ctrlKey || e.altKey) return;

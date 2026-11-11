@@ -15,7 +15,7 @@
 <body data-screen="home">
 <div class="vignette" aria-hidden="true"></div>
 
-<!-- Home: title, hero, three cards -->
+<!-- Home: title, hero, four cards, links -->
 <section id="home" class="screen">
   <div class="col">
     <h1 class="title">Audio Detector</h1>
@@ -24,33 +24,40 @@
     <nav class="menu" aria-label="tabs">
       <a class="item" href="#/data">
         <span class="item-art" data-pix="wave2"></span>
-        <span class="item-text"><b>Data</b><span>Listen and explore</span></span>
+        <span class="item-text"><b>Data</b></span>
+        <span class="item-go" aria-hidden="true">›</span>
+      </a>
+      <a class="item" href="#/stats">
+        <span class="item-art" data-pix="chart"></span>
+        <span class="item-text"><b>Stats</b></span>
         <span class="item-go" aria-hidden="true">›</span>
       </a>
       <a class="item wip" href="#/model">
         <span class="item-art" data-pix="chip"></span>
-        <span class="item-text"><b>Model</b><span>Scores and stats</span></span>
+        <span class="item-text"><b>Model</b></span>
         <span class="soon">soon</span>
       </a>
       <a class="item wip" href="#/try">
         <span class="item-art" data-pix="mic"></span>
-        <span class="item-text"><b>Try</b><span>Pick a clip or upload audio</span></span>
+        <span class="item-text"><b>Try</b></span>
         <span class="soon">soon</span>
       </a>
     </nav>
   </div>
   <footer class="credit">
-    data: <a href="https://datashare.ed.ac.uk/handle/10283/3336" target="_blank" rel="noopener">ASVspoof 2019</a> (ODC-By) ·
-    made by <a href="https://github.com/hoeksemaa" target="_blank" rel="noopener">John</a>
+    <p>data: ASVspoof 2019 (ODC-By)</p>
+    <div class="links">
+      <a class="btn btn-sm" href="https://datashare.ed.ac.uk/handle/10283/3336" target="_blank" rel="noopener" title="ASVspoof 2019 download page (Edinburgh DataShare)">See source <span data-pix="ext"></span></a>
+      <a class="btn btn-sm" href="https://github.com/hoeksemaa" target="_blank" rel="noopener" title="John Hoeksema on GitHub">John <span data-pix="ext"></span></a>
+    </div>
   </footer>
 </section>
 
-<!-- Data: the explorer (explorer.js) -->
+<!-- Data and Stats: the explorer (explorer.js); data-tab picks the view -->
 <section id="data" class="screen" data-tab="clips">
   <header class="ex-head">
     <div class="ex-bar">
       <a href="#/" class="btn btn-sm home-btn" aria-label="home" title="home"><span data-pix="home"></span></a>
-      <a id="b-source" class="btn btn-sm" href="https://datashare.ed.ac.uk/handle/10283/3336" target="_blank" rel="noopener" title="ASVspoof 2019 download page (Edinburgh DataShare)">See source <span data-pix="ext"></span></a>
       <button id="b-filters" class="btn btn-sm only-m" aria-expanded="false">Filters</button>
     </div>
     <div id="stats" class="chips"></div>
@@ -62,7 +69,6 @@
       <input id="f-q" type="search" inputmode="numeric" placeholder="search clip #" aria-label="search clip number">
       <button id="reset" class="btn btn-sm">Reset</button>
     </div>
-    <nav id="ex-tabs" class="seg only-m"><button data-tab="clips" class="on">Clips</button><button data-tab="stats">Stats</button></nav>
   </header>
   <div class="ex-main">
     <section id="left">

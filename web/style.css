@@ -139,11 +139,11 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 .wip .item-art { opacity: 0.5; }
 .item-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .item-text b { font-family: var(--pixel); font-size: 22px; font-weight: 600; }
-.item-text span { font-size: 16px; color: var(--ink-2); }
 .item-go { font-size: 26px; line-height: 1; color: var(--ink-2); }
 .soon { padding: 2px 6px; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); border: 1px solid var(--gold); border-radius: 4px; }
 .credit { padding: 28px 16px max(16px, env(safe-area-inset-bottom)); text-align: right; font-size: 15px; color: var(--ink-2); }
-.credit a { color: var(--ink); }
+.credit p { margin: 0 0 8px; }
+.credit .links { display: flex; justify-content: flex-end; gap: 8px; }
 
 /* ---------- under construction ---------- */
 .uc { margin-top: 16px; padding: 28px 20px 26px; text-align: center; }
@@ -151,7 +151,7 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 .uc h2 { margin: 18px 0 8px; font-family: var(--pixel); font-size: 26px; color: var(--gold); text-shadow: 0 3px 0 var(--shadow); }
 .uc p { margin: 0 0 22px; color: var(--ink-2); }
 
-/* ---------- Data tab (mobile: player on top, list below; stats on its own tab) ---------- */
+/* ---------- Data and Stats tabs (one explorer; data-tab picks the view) ---------- */
 #data { flex: 1; min-height: 0; flex-direction: column; }
 .ex-head { padding: 10px 10px 0; padding-top: max(10px, env(safe-area-inset-top)); }
 .ex-bar { display: flex; align-items: center; gap: 8px; }
@@ -170,12 +170,6 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 #data.show-filters #filters { display: flex; }
 #filters select { flex: 1 1 40%; }
 #f-q { flex: 1 1 60%; }
-.seg { display: flex; gap: 6px; margin-top: 10px; }
-.seg button {
-  flex: 1; font: inherit; font-weight: 600; min-height: 36px; color: var(--ink-2); cursor: pointer;
-  background: var(--panel); border: 2px solid var(--edge); border-radius: 8px; box-shadow: 0 3px 0 var(--shadow);
-}
-.seg button.on { background: var(--gold); border-color: var(--gold); color: #1b1300; }
 /* If the phone is short, the area under the header scrolls; the list keeps 3 rows. */
 .ex-main { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; }
 #right { order: 1; }
@@ -270,16 +264,18 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
   .ex-bar { display: contents; }
   .home-btn { order: -2; }
   #stats { order: 2; flex: 0 0 auto; margin-left: auto; padding: 0; }
-  #b-source { order: -1; }
   #filters { display: flex; flex: 1 1 auto; padding: 0; }
   #filters select, #f-q { flex: 0 0 auto; }
   #f-q { width: 130px; }
   #f-system { width: 160px; }
   select, input[type="search"] { font-size: 16px; min-height: 38px; }
-  .ex-main { display: grid; grid-template-columns: 380px 280px minmax(0, 1fr); gap: 12px; padding: 12px 14px 14px; }
-  #data[data-tab] #left { display: block; order: 1; }
-  #data[data-tab] #mid { display: flex; order: 2; }
-  #data[data-tab] #right { display: flex; order: 3; overflow-y: auto; }
+  .ex-main { padding: 12px 14px 14px; }
+  #data[data-tab="clips"] .ex-main { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 12px; }
+  #data[data-tab="clips"] #right { order: 2; overflow-y: auto; }
+  #data[data-tab="clips"] #mid { order: 1; }
+  #data[data-tab="stats"] #left { width: 100%; max-width: 1100px; margin: 0 auto; }
+  #hists { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0 12px; }
+  #hists .grp { grid-column: 1 / -1; }
   #wave { height: 70px; }
   #spec { height: 260px; }
 }

@@ -36,7 +36,6 @@ export async function showModel() {
 function renderModel(d, m) {
   const r = m.results, g = m.fpr_per_gender;
   const SAME = { A16: "A04", A19: "A06" }; // the same systems as in training
-  const va = m.curves.validation, minV = Math.min(...va.map((p) => p[1]));
   const sys = Object.entries(m.per_system);
   const maxE = Math.max(...sys.map(([, v]) => v), 0.01);
   $("m-body").innerHTML = `
@@ -51,7 +50,6 @@ function renderModel(d, m) {
       <h3>Loss over training</h3>
       <div class="legend"><span><i style="background:${COL.train}"></i>train</span><span><i style="background:${COL.validation}"></i>validation</span></div>
       <div class="chart" id="m-chart"></div>
-      <p class="m-dim">Lower is better. The kept checkpoint (epoch ${m.best_epoch}) has the lowest validation loss.${va[va.length - 1][1] > minV * 1.2 ? " After it, validation loss rose while train loss kept falling: the model began to memorize the training speakers." : ""}</p>
     </section>
 
     <section class="panel m-card">

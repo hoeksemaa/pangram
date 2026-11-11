@@ -1,9 +1,9 @@
-// The app shell: home screen, three tabs (hash routes), pixel icons, and the hero waveform.
-// The Data tab is the explorer (explorer.js). Model and Try wait for a model.
+// The app shell: home screen, four tabs (hash routes), pixel icons, and the hero waveform.
+// Data and Stats are two views of the explorer (explorer.js). Model and Try wait for a model.
 import { initExplorer, showExplorer } from "./explorer.js";
 
 const $ = (id) => document.getElementById(id);
-const SCREENS = ["home", "data", "model", "try"];
+const SCREENS = ["home", "data", "stats", "model", "try"];
 const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // ---------- pixel icons: one string per row; "#" = currentColor, other letters = palette ----------
@@ -11,6 +11,7 @@ const ICONS = {
   home: ["....#....", "...###...", "..#####..", ".#######.", "#########", ".##...##.", ".##...##.", ".##...##.", ".#######."],
   wave: bars([2, 5, 8, 4, 11, 7, 3, 9, 6, 3, 1]),
   wave2: bars([2, 5, 8, 4, 11, 7, 3, 9, 6, 3, 1], "hhhhhhaaaaa"),
+  chart: ["..h......", "..h...a..", ".hh...a..", ".hhh..aa.", "hhhh.aaa.", "hhhh.aaaa", "#########"],
   chip: ["..#.#.#..", ".#######.", "##.....##", ".#.###.#.", "##.###.##", ".#.###.#.", "##.....##", ".#######.", "..#.#.#.."],
   mic: ["...###...", "..#####..", "..#####..", "..#####..", "..#####..", "#.#####.#", "#..###..#", ".#.....#.", "..#####..", "....#....", "..#####.."],
   ext: ["..#####", ".....##", "....###", "...##.#", "..##..#", ".##....", "##....."],
@@ -76,9 +77,11 @@ const hero = (() => {
 function route() {
   const name = (location.hash.match(/^#\/(\w+)/) || [])[1];
   const screen = SCREENS.includes(name) ? name : "home";
-  document.body.dataset.screen = screen;
+  const view = screen === "stats" ? "data" : screen; // Stats is the explorer's other view
+  document.body.dataset.screen = view;
+  $("data").dataset.tab = screen === "stats" ? "stats" : "clips";
   hero.run(screen === "home");
-  if (screen === "data") initExplorer().then(showExplorer, () => {});
+  if (view === "data") initExplorer().then(showExplorer, () => {});
   window.scrollTo(0, 0);
 }
 window.addEventListener("hashchange", route);

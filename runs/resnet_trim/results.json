@@ -1,0 +1,177 @@
+{
+ "name": "resnet_trim",
+ "config": {
+  "name": "resnet_trim",
+  "arch": "resnet",
+  "trim": "vad",
+  "loss": "ce",
+  "seed": 0,
+  "crop": 3.0,
+  "batch": 64,
+  "lr": 0.0003,
+  "max_epochs": 40,
+  "max_min": 60,
+  "patience": 6,
+  "checks_per_epoch": 2,
+  "limit": 0,
+  "overfit": false,
+  "no_test": false
+ },
+ "parameters": 2811042,
+ "stopped": "validation loss did not improve for 6 checks",
+ "train_minutes": 46.8,
+ "best_check": {
+  "step": 1584,
+  "epoch": 4.0,
+  "train_loss": 0.07816433191718063,
+  "dev_loss": 0.2378925383090973,
+  "dev_eer": 0.0686068954368201,
+  "minutes": 25.264673682053886
+ },
+ "threshold_rule": "flags 1% of validation humans",
+ "validation": {
+  "eer": 0.0686068954368201,
+  "eer_threshold": -2.047283411026001,
+  "fixed": {
+   "threshold": 1.2932393550872803,
+   "false_positive_rate": 0.009811616954474097,
+   "catch_rate": 0.8519016864011482,
+   "share_called_ai": 0.7655369505715666,
+   "n_human": 2548,
+   "n_ai": 22296
+  },
+  "eer_per_system": {
+   "A01": 0.031637553588960636,
+   "A02": 0.03462581935978831,
+   "A03": 0.014195688211527068,
+   "A04": 0.1800867900360442,
+   "A05": 0.04404476040643965,
+   "A06": 0.03674508637602593
+  },
+  "fpr_per_gender": {
+   "female": 0.0010822510822510823,
+   "male": 0.008928571428571428
+  },
+  "fpr_per_speaker": {
+   "speakers": 20,
+   "with_any_false_positive": 8,
+   "worst": {
+    "LA_0101": {
+     "fpr": 0.05194805194805195,
+     "clips": 77
+    },
+    "LA_0108": {
+     "fpr": 0.03968253968253968,
+     "clips": 126
+    },
+    "LA_0100": {
+     "fpr": 0.03896103896103896,
+     "clips": 77
+    },
+    "LA_0102": {
+     "fpr": 0.031746031746031744,
+     "clips": 126
+    },
+    "LA_0107": {
+     "fpr": 0.023809523809523808,
+     "clips": 126
+    }
+   }
+  }
+ },
+ "test": {
+  "eer": 0.18023856166145558,
+  "eer_threshold": -4.152761936187744,
+  "fixed": {
+   "threshold": 1.2932393550872803,
+   "false_positive_rate": 0.02936777702243372,
+   "catch_rate": 0.5719764565918412,
+   "share_called_ai": 0.5159537880595758,
+   "n_human": 7355,
+   "n_ai": 63882
+  },
+  "eer_per_system": {
+   "A07": 0.12494906961256382,
+   "A08": 0.02974334626272082,
+   "A09": 0.00302183276350509,
+   "A10": 0.30059081462888393,
+   "A11": 0.0717437546465419,
+   "A12": 0.34167458671197626,
+   "A13": 0.32979075586145606,
+   "A14": 0.15920805910608765,
+   "A15": 0.2419190083024209,
+   "A16": 0.1462040917513385,
+   "A17": 0.11866769205314409,
+   "A18": 0.1366631693960042,
+   "A19": 0.07259285267442986
+  },
+  "fpr_per_gender": {
+   "female": 0.014967021816336884,
+   "male": 0.0861344537815126
+  },
+  "fpr_per_speaker": {
+   "speakers": 67,
+   "with_any_false_positive": 32,
+   "worst": {
+    "LA_0001": {
+     "fpr": 0.47058823529411764,
+     "clips": 68
+    },
+    "LA_0021": {
+     "fpr": 0.39705882352941174,
+     "clips": 68
+    },
+    "LA_0002": {
+     "fpr": 0.23529411764705882,
+     "clips": 68
+    },
+    "LA_0038": {
+     "fpr": 0.23529411764705882,
+     "clips": 68
+    },
+    "LA_0023": {
+     "fpr": 0.19117647058823528,
+     "clips": 68
+    }
+   }
+  }
+ },
+ "in_the_wild": {
+  "eer": 0.6637034790582474,
+  "eer_threshold": 3.4535059928894043,
+  "fixed": {
+   "threshold": 1.2932393550872803,
+   "false_positive_rate": 0.7923961980990495,
+   "catch_rate": 0.4325463743676223,
+   "share_called_ai": 0.6583987441130298,
+   "n_human": 1999,
+   "n_ai": 1186
+  },
+  "fpr_per_speaker": {
+   "speakers": 54,
+   "with_any_false_positive": 51,
+   "worst": {
+    "Adam Driver": {
+     "fpr": 1.0,
+     "clips": 8
+    },
+    "Alan Watts": {
+     "fpr": 1.0,
+     "clips": 9
+    },
+    "Ayn Rand": {
+     "fpr": 1.0,
+     "clips": 139
+    },
+    "Billie Eilish": {
+     "fpr": 1.0,
+     "clips": 1
+    },
+    "Bob Ross": {
+     "fpr": 1.0,
+     "clips": 6
+    }
+   }
+  }
+ }
+}

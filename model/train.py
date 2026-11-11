@@ -1,6 +1,7 @@
 """Train the detector on ASVspoof 2019 LA (train split), choose on the validation split (dev), test once.
 
 Logs train loss every step and validation loss + EER every half epoch, on one chart.
+Training uses random 3 s crops; scoring uses fixed 3 s windows (mean over the windows of a clip).
 Stops when validation loss has not improved for --patience checks (or at --max-min minutes)
 and keeps the checkpoint with the lowest validation loss.
 
@@ -25,7 +26,6 @@ from metrics import TARGET_FPR, eer, report, summary_line, threshold_at_fpr
 from nets import LCNN, loss_fn
 
 SR = 16000
-MIN_LEN = SR  # clips shorter than 1 s are repeated up to 1 s
 
 
 def bounds_for(clips, trim: str, file: str) -> np.ndarray:
@@ -60,42 +60,44 @@ def crop(x: np.ndarray, n: int, rng) -> np.ndarray:
     return tile(x, n, int(rng.integers(0, len(x))))
 
 
-def batches_by_length(audio: list, max_clips: int = 128, max_samples: int = 4_000_000):
-    """Index batches of similar length (sorted), for scoring whole clips."""
-    order = np.argsort([len(a) for a in audio])
-    batch, longest = [], 0
-    for i in order:
-        n = max(len(audio[i]), MIN_LEN)
-        if batch and (len(batch) >= max_clips or max(longest, n) * (len(batch) + 1) > max_samples):
-            yield batch
-            batch, longest = [], 0
-        batch.append(i)
-        longest = max(longest, n)
-    if batch:
-        yield batch
+def windows(x: np.ndarray, n: int) -> list:
+    """Fixed n-sample windows that cover the clip: a short clip is repeated to n; a long one is cut
+    into back-to-back windows (the last one ends at the clip end). Same input length as training."""
+    if len(x) <= n:
+        return [tile(x, n)]
+    starts = list(range(0, len(x) - n + 1, n))
+    if starts[-1] != len(x) - n:
+        starts.append(len(x) - n)
+    return [x[s:s + n] for s in starts]
 
 
 @torch.no_grad()
-def score_audio(model, audio: list, y: np.ndarray, w, dev) -> tuple[np.ndarray, float]:
-    """Whole-clip scores and the class-weighted loss."""
+def score_audio(model, audio: list, y: np.ndarray, w, dev, n: int, batch: int = 256) -> tuple[np.ndarray, float]:
+    """Clip scores and the class-weighted loss. A clip's output = the mean over its windows,
+    so a score does not depend on which other clips share the batch."""
     model.eval()
-    scores = np.zeros(len(audio), dtype=np.float64)
-    loss_sum = weight_sum = 0.0
-    for b in batches_by_length(audio):
-        n = max(MIN_LEN, max(len(audio[i]) for i in b))
-        x = torch.from_numpy(np.stack([tile(audio[i], n) for i in b]).astype(np.float32) / 32767).to(dev)
-        out = model(x)
-        yy = torch.from_numpy(y[b]).to(dev)
-        wsum = w[yy].sum().item()
-        loss_sum += loss_fn(model, out, yy, w).item() * wsum
-        weight_sum += wsum
-        s = out[:, 1] - out[:, 0] if model.head_type == "ce" else -out
-        scores[b] = s.float().cpu().numpy()
+    owner, wins = [], []
+    for i, a in enumerate(audio):
+        for win in windows(a, n):
+            owner.append(i)
+            wins.append(win)
+    owner = np.array(owner)
+    outs = []
+    for k in range(0, len(wins), batch):
+        x = torch.from_numpy(np.stack(wins[k:k + batch]).astype(np.float32) / 32767).to(dev)
+        outs.append(model(x).float().cpu())
+    out = torch.cat(outs)
+    counts = torch.from_numpy(np.bincount(owner, minlength=len(audio))).float()
+    shape = (len(audio),) + tuple(out.shape[1:])
+    clip = torch.zeros(shape).index_add_(0, torch.from_numpy(owner), out) / counts.view(-1, *([1] * (out.dim() - 1)))
+    yy = torch.from_numpy(y)
+    loss = loss_fn(model, clip, yy, w.cpu()).item()
+    scores = (clip[:, 1] - clip[:, 0]) if model.head_type == "ce" else -clip
     model.train()
-    return scores, loss_sum / weight_sum
+    return scores.numpy().astype(np.float64), loss
 
 
-def score_clips(model, pool, clips, bounds, w, dev, chunk: int = 4096) -> np.ndarray:
+def score_clips(model, pool, clips, bounds, w, dev, n: int, chunk: int = 4096) -> np.ndarray:
     """Score a big split without holding all its audio in memory."""
     scores = np.zeros(len(clips))
     lengths = np.where(bounds[:, 1] < 0, 0, bounds[:, 1] - bounds[:, 0])
@@ -105,7 +107,7 @@ def score_clips(model, pool, clips, bounds, w, dev, chunk: int = 4096) -> np.nda
         sub = clips.take(np.isin(np.arange(len(clips)), part))
         idx = np.flatnonzero(np.isin(np.arange(len(clips)), part))
         audio = decode(pool, sub, bounds[idx])
-        scores[idx], _ = score_audio(model, audio, sub.label, w, dev)
+        scores[idx], _ = score_audio(model, audio, sub.label, w, dev, n)
     return scores
 
 
@@ -216,7 +218,7 @@ def main() -> None:
                     stop = "overfit test done"
                 break
             if step % check_every == 0:
-                va_scores, va_loss = score_audio(model, va_audio, va.label, w, dev)
+                va_scores, va_loss = score_audio(model, va_audio, va.label, w, dev, L)
                 va_eer = eer(va_scores, va.label)[0]
                 train_recent = float(np.mean([s[2] for s in steps[-check_every:]]))
                 checks.append({"step": step, "epoch": round(ep, 3), "train_loss": train_recent,
@@ -253,7 +255,7 @@ def main() -> None:
 
     # Best checkpoint -> threshold on validation -> test split and In-the-Wild, once.
     model.load_state_dict(torch.load(run / "best.pt", map_location=dev))
-    va_scores, _ = score_audio(model, va_audio, va.label, w, dev)
+    va_scores, _ = score_audio(model, va_audio, va.label, w, dev, L)
     thr = threshold_at_fpr(va_scores, va.label, TARGET_FPR)
     results = {"name": args.name, "config": vars(args), "parameters": n_params, "stopped": stop,
                "train_minutes": round((time.time() - t_start) / 60, 1), "best_check": min(checks, key=lambda r: r["dev_loss"]),
@@ -262,11 +264,11 @@ def main() -> None:
     del tr_audio, va_audio
     if not args.no_test:
         te = la_clips("eval")
-        te_scores = score_clips(model, pool, te, bounds_for(te, args.trim, "trim_vad.npz"), w, dev)
+        te_scores = score_clips(model, pool, te, bounds_for(te, args.trim, "trim_vad.npz"), w, dev, L)
         results["test"] = report(te_scores, te, thr)
         print(summary_line("test", results["test"]), flush=True)
         itw = itw_clips()
-        itw_scores = score_clips(model, pool, itw, bounds_for(itw, args.trim, "trim_vad_itw.npz"), w, dev)
+        itw_scores = score_clips(model, pool, itw, bounds_for(itw, args.trim, "trim_vad_itw.npz"), w, dev, L)
         results["in_the_wild"] = report(itw_scores, itw, thr)
         print(summary_line("in-the-wild", results["in_the_wild"]), flush=True)
         np.savez(run / "scores.npz", test_ids=te.ids, test=te_scores, itw_ids=itw.ids, itw=itw_scores,

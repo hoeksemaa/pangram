@@ -5,7 +5,7 @@ so the human class and every AI system appear in each split. Audio is written as
 16-bit WAV, which every browser can play and decode (the full data stays local).
 
 Usage:
-    uv run scripts/build_site.py                       # -> site/
+    uv run --with onnxruntime scripts/build_site.py    # -> site/ (also runs build_models.py)
     uv run scripts/build_site.py --per-group 20 --seed 0
 Deploy:
     cd site && vercel deploy --prod
@@ -20,8 +20,10 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
+from build_models import build_models
+
 REPO = Path(__file__).resolve().parent.parent
-WEB_FILES = ["index.html", "app.js", "explorer.js", "style.css"]
+WEB_FILES = ["index.html", "app.js", "explorer.js", "model.js", "style.css"]
 
 
 def main() -> None:
@@ -75,6 +77,8 @@ def main() -> None:
         shutil.copy(guesses, args.out / "transcripts.json")
     for name in WEB_FILES:
         shutil.copy(REPO / "web" / name, args.out / name)
+
+    build_models(args.out)  # Model and Try tabs: exported models, curves, results, test clips
 
     labels = Counter(cat["label"][cols["label"][i]] for i in pick)
     print(f"{len(pick)} clips from {len(groups)} split x system groups ({dict(labels)})")

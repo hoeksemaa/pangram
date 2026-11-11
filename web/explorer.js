@@ -298,7 +298,7 @@ function showClip(i) {
   $("clip-head").innerHTML = `<span class="badge ${esc(L)}">${esc(labelName(L))}</span><b title="${ids[i]}">${num(i)}</b>`;
   const text = texts && texts[ids[i]];
   $("text").hidden = !text;
-  $("text").innerHTML = text ? `<span class="dim">Whisper's guess</span>“${esc(text)}”` : "";
+  $("text").innerHTML = text ? `<span class="dim" title="Whisper's guess of the words">guess:</span> ${esc(text)}` : "";
 }
 async function loadViz(i, src, t) {
   try {

@@ -261,7 +261,8 @@ async function startRec(d) {
     proc.connect(ac.destination); // a processor only runs when connected; its output stays silent
     st.proc = proc;
     await ac.resume();
-    setSlot(`<p class="t-rec-note">Recording… speak for 2–8 seconds.</p><canvas id="t-live" aria-label="live waveform of the recording"></canvas>`);
+    setSlot(`<div class="t-head"><p class="t-rec-note">Recording… speak for 2–8 seconds.</p>${CLEAR}</div><canvas id="t-live" aria-label="live waveform of the recording"></canvas>`);
+    $("t-slot").querySelector(".t-clear").onclick = () => { stopRec(true); clearSlot(); };
     document.querySelectorAll(".t-tile").forEach((t) => t.classList.remove("on"));
     st.t0 = performance.now();
     st.timer = setTimeout(() => recState === st && stopRec(), MAX_S * 1000); // also when the tab is hidden
@@ -373,11 +374,24 @@ function drawLive(cv, cols, sec) {
 }
 
 function setSlot(html) { $("t-slot").innerHTML = html; }
+const EMPTY = `<p class="t-empty">Drag a clip here, tap one, or record your voice.</p>`;
+const CLEAR = `<button class="btn btn-sm t-clear" aria-label="clear the recording" title="clear">×</button>`;
+// Empty the slot: stop a pending run and playback, free the recording.
+function clearSlot() {
+  runId++;
+  const A = $("t-audio");
+  A.pause();
+  A.removeAttribute("src");
+  A.dataset.src = "";
+  if (cur && cur.url && cur.url.startsWith("blob:")) URL.revokeObjectURL(cur.url);
+  cur = null;
+  setSlot(EMPTY);
+}
 let runId = 0;
 async function run() {
   const d = await initModels(), m = d.models.find((x) => x.id === $("t-model").value), c = cur, id = ++runId;
   const head = `<div class="t-head">${c.label ? `<span class="lab ${c.label === "AI" ? "ai" : "human"}">${c.label}</span>` : ""}<b>${esc(c.name)}</b>
-    <button class="btn btn-sm t-play" aria-label="play">▶</button></div><p class="t-sub">${esc(c.sub)}</p>`;
+    <button class="btn btn-sm t-play" aria-label="play">▶</button>${c.label ? "" : CLEAR}</div><p class="t-sub">${esc(c.sub)}</p>`;
   setSlot(`${head}<p class="t-wait">${ortP ? "Running" : "Loading"} ${esc(m.name)}…</p>`);
   bindPlay(c);
   try {
@@ -395,6 +409,8 @@ async function run() {
   }
 }
 function bindPlay(c) {
+  const x = $("t-slot").querySelector(".t-clear");
+  if (x) x.onclick = clearSlot;
   const b = $("t-slot").querySelector(".t-play"), A = $("t-audio");
   if (!b) return;
   b.onclick = () => {

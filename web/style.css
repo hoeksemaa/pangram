@@ -290,6 +290,8 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 .t-head { display: flex; align-items: center; gap: 10px; }
 .t-head b { font-size: 18px; }
 .t-play { margin-left: auto; width: 44px; padding: 0; }
+.t-clear { width: 44px; padding: 0; font-size: 24px; line-height: 1; }
+.t-rec-note + .t-clear { margin-left: auto; }
 .t-sub, .t-wait { margin: 6px 0 0; color: var(--ink-2); font-size: 16px; }
 .t-score { margin-top: 10px; font-size: 20px; }
 .t-score b { font-family: var(--pixel); font-size: 44px; line-height: 1; }
@@ -304,7 +306,7 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 .t-verdict .ok { color: #3ecf8e; }
 .t-verdict .no { color: var(--gold); }
 .btn-rec { width: 100%; margin-top: 12px; min-height: 48px; font-weight: 600; }
-.t-rec-note { margin: 0; color: var(--ink-2); font-size: 16px; }
+.t-rec-note { margin: 0; flex: 1; color: var(--ink-2); font-size: 16px; }
 #t-live { display: block; width: 100%; height: 132px; margin-top: 10px; background: var(--panel-2); border-radius: 6px; }
 .btn-rec .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--ai); }
 .btn-rec.on { background: var(--ai); }

@@ -44,13 +44,12 @@ const KIND = {
   "TTS + VC": "Text-to-speech, then voice conversion into the target voice.",
 };
 const SPLIT_NAME = { train: "train", dev: "validation", eval: "test" };
-const sysName = (v) => (v === "-" ? "human" : SYSTEMS[v] ? `${v} · ${SYSTEMS[v]}` : v);
 const labelName = (v) => (v === "ai" ? "AI" : v === "?" ? "unlabeled" : v);
 const CAT_KEYS = ["split", "label", "system", "gender"];
 
 let N = 0, doc, cat, ids, errs, texts = null, HUMAN = -1, AI = -1;
 const C = {};
-const S = { rows: new Uint32Array(0), sel: -1, ranges: {}, dom: {}, hist: [], counts: null, nhna: [0, 0] };
+const S = { rows: new Uint32Array(0), sel: -1, ranges: {}, dom: {}, hist: [], nhna: [0, 0] };
 
 // ---------- helpers ----------
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -103,51 +102,27 @@ async function load() {
   $("note").innerHTML = doc.sample
     ? `A sample: ${N.toLocaleString()} of ${doc.sample.n_total.toLocaleString()} clips, ${doc.sample.per_group} from each split × AI system. Data: ${src}.`
     : `Data: ${src}.`;
-  initFilters(); initHists(); bind();
+  initHists(); bind();
   apply();
   if (S.rows.length) select(0, false);
 }
 
-// ---------- filters ----------
-function initFilters() {
-  const opts = (id, name, vocab, show = (v) => v) => {
-    $(id).innerHTML = `<option value="">${name}</option>` + vocab.map((v, i) => `<option value="${i}">${esc(show(v))}</option>`).join("");
-  };
-  opts("f-split", "split", cat.split);
-  opts("f-label", "label", cat.label, labelName);
-  opts("f-system", "AI system", cat.system, sysName);
-  opts("f-gender", "gender", cat.gender);
-}
-function readF() {
-  const n = (id) => ($(id).value === "" ? -1 : +$(id).value);
-  return { split: n("f-split"), label: n("f-label"), system: n("f-system"), gender: n("f-gender"), q: $("f-q").value.trim() };
-}
-
-// One pass over all clips: list rows, class counts, histograms (each ignores its own
-// range filter), and the system x split counts (which ignore the split and system filters).
+// One pass over all clips: list rows, class counts, and histograms (each ignores its own range filter).
+// The only filters are the histogram ranges (Stats tab).
 function apply() {
-  const F = readF();
   const prev = S.sel >= 0 && S.sel < S.rows.length ? S.rows[S.sel] : -1;
   const ranges = Object.entries(S.ranges).map(([k, r]) => ({ fi: NUM.findIndex((f) => f.k === k), v: C[k], lo: r[0], hi: r[1] }));
   const hist = NUM.map(() => ({ h: new Float64Array(BINS), a: new Float64Array(BINS) }));
   const bins = NUM.map((f) => { const [lo, hi] = S.dom[f.k]; return { v: C[f.k], lo, scale: BINS / (hi - lo) }; });
-  const nSplit = cat.split.length;
-  const counts = new Uint32Array(cat.system.length * nSplit);
   const out = [];
   let nh = 0, na = 0;
   for (let i = 0; i < N; i++) {
     const lab = C.label[i];
-    if (F.label >= 0 && lab !== F.label) continue;
-    if (F.gender >= 0 && C.gender[i] !== F.gender) continue;
-    if (F.q && !num(i).includes(F.q)) continue;
     let fails = 0, failed = -1;
     for (const r of ranges) {
       const v = r.v[i];
       if (!(v >= r.lo && v <= r.hi)) { fails++; failed = r.fi; if (fails > 1) break; }
     }
-    if (fails === 0) counts[C.system[i] * nSplit + C.split[i]]++;
-    if (F.split >= 0 && C.split[i] !== F.split) continue;
-    if (F.system >= 0 && C.system[i] !== F.system) continue;
     if (fails === 0) { out.push(i); if (lab === HUMAN) nh++; else if (lab === AI) na++; }
     if (fails > 1 || (lab !== HUMAN && lab !== AI)) continue;
     for (let fi = 0; fi < NUM.length; fi++) {
@@ -159,18 +134,18 @@ function apply() {
     }
   }
   S.rows = Uint32Array.from(out); // the index is sorted by id
-  S.hist = hist; S.counts = counts; S.nhna = [nh, na];
+  S.hist = hist; S.nhna = [nh, na];
   S.sel = prev >= 0 ? S.rows.indexOf(prev) : -1;
-  updateStats(); layoutRows(); drawHists(); drawCounts();
+  updateStats(); layoutRows(); drawHists();
 }
 function updateStats() {
   const [h, a] = S.nhna;
   const n = (x) => x.toLocaleString();
   const k = (x) => (x >= 10000 ? `${Math.round(x / 1000)}k` : n(x));
   const filtered = S.rows.length < N, total = doc.sample ? doc.sample.n_total : 0;
-  // "560 of 122k clips" (sample of the full set) or "42 of 560 clips" (filters on)
+  // "560 of 122k clips" (sample of the full set) or "42 of 560 clips" (histogram ranges on)
   const of = filtered ? N : total;
-  const tip = filtered ? "clips that pass the filters" : `a sample of the ${n(total)} clips in ASVspoof 2019 LA`;
+  const tip = filtered ? "clips inside the histogram ranges (Stats tab)" : `a sample of the ${n(total)} clips in ASVspoof 2019 LA`;
   $("stats").innerHTML = `<span class="chip" title="${tip}">${n(S.rows.length)}${of ? ` of ${k(of)}` : ""} clips</span>`
     + `<span class="chip h" title="human clips shown">${n(h)} human</span><span class="chip a" title="AI clips shown">${n(a)} AI</span>`;
 }
@@ -270,23 +245,6 @@ function drawHist(fi, drag) {
   const ae = el.querySelector(".auc");
   ae.textContent = auc === auc ? `AUC ${auc.toFixed(2)}` : "";
   ae.className = `auc${auc >= 0.75 ? " hi" : ""}`;
-}
-
-// ---------- counts: AI system x split ----------
-function drawCounts() {
-  const order = ["train", "dev", "eval"].map((s) => cat.split.indexOf(s)).filter((x) => x >= 0);
-  const nSplit = cat.split.length, F = readF();
-  let html = `<tr><th>AI system</th>${order.map((c) => `<th>${cat.split[c]}</th>`).join("")}<th>all</th></tr>`;
-  cat.system.forEach((s, si) => {
-    let tot = 0;
-    const tds = order.map((c) => {
-      const v = S.counts[si * nSplit + c]; tot += v;
-      const on = F.system === si && F.split === c ? ' style="font-weight:600"' : "";
-      return `<td class="c${v ? "" : " z"}" data-sys="${si}" data-split="${c}"${on}>${v.toLocaleString()}</td>`;
-    }).join("");
-    html += `<tr><td class="c" data-sys="${si}" data-split="" title="${esc(sysName(s))}">${s === "-" ? "human" : esc(s)}</td>${tds}<td>${tot.toLocaleString()}</td></tr>`;
-  });
-  $("counts").innerHTML = html;
 }
 
 // ---------- player ----------
@@ -452,24 +410,9 @@ const randomPick = () => { if (S.rows.length) select(Math.floor(Math.random() * 
 // ---------- layout + events ----------
 function layout() { layoutRows(); drawHists(); drawViz(); }
 function bind() {
-  let qt, rt;
-  for (const id of ["f-split", "f-label", "f-system", "f-gender"]) $(id).addEventListener("change", apply);
-  $("f-q").addEventListener("input", () => { clearTimeout(qt); qt = setTimeout(apply, 150); });
-  $("reset").addEventListener("click", () => {
-    for (const id of ["f-split", "f-label", "f-system", "f-gender", "f-q"]) $(id).value = "";
-    S.ranges = {}; apply();
-  });
-  $("b-filters").addEventListener("click", () => {
-    const on = $("data").classList.toggle("show-filters");
-    $("b-filters").setAttribute("aria-expanded", on);
-    renderRows();
-  });
+  let rt;
   $("tbody").addEventListener("scroll", renderRows, { passive: true });
   $("rows").addEventListener("click", (e) => { const row = e.target.closest(".r"); if (row) select(+row.dataset.p); });
-  $("counts").addEventListener("click", (e) => {
-    const td = e.target.closest("td.c"); if (!td) return;
-    $("f-system").value = td.dataset.sys; $("f-split").value = td.dataset.split; apply();
-  });
   $("b-prev").addEventListener("click", () => select(S.sel - 1));
   $("b-next").addEventListener("click", () => select(S.sel + 1));
   $("b-play").addEventListener("click", togglePlay);
@@ -494,7 +437,7 @@ function bind() {
     const keys = {
       j: () => select(S.sel + 1), ArrowDown: () => select(S.sel + 1),
       k: () => select(S.sel - 1), ArrowUp: () => select(S.sel - 1),
-      " ": togglePlay, r: randomPick, "/": () => $("f-q").focus(),
+      " ": togglePlay, r: randomPick,
       c: () => $("b-chain").click(), i: () => $("b-info").click(),
     };
     if (keys[e.key]) { e.preventDefault(); keys[e.key](); }

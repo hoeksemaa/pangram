@@ -143,7 +143,6 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 #data { flex: 1; min-height: 0; flex-direction: column; }
 .ex-head { padding: 10px 10px 0; padding-top: max(10px, env(safe-area-inset-top)); }
 .ex-bar { display: flex; align-items: center; gap: 8px; }
-#b-filters { margin-left: auto; }
 .btn svg[viewBox="0 0 7 7"] { width: 14px; height: 14px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 10px; }
 .chip {
@@ -153,10 +152,6 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 }
 .chip.h { background: var(--human); border-color: var(--human); color: #fff; }
 .chip.a { background: var(--ai); border-color: var(--ai); color: #fff; }
-#filters { display: none; flex-wrap: wrap; gap: 8px; padding-top: 10px; }
-#data.show-filters #filters { display: flex; }
-#filters select { flex: 1 1 40%; }
-#f-q { flex: 1 1 60%; }
 /* If the phone is short, the area under the header scrolls; the list keeps 3 rows. */
 .ex-main { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; }
 #right { order: 1; }
@@ -215,7 +210,7 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 #time { position: absolute; right: 4px; bottom: 4px; padding: 1px 5px; border-radius: 3px; background: rgba(3, 6, 12, 0.7); color: var(--ink); font-size: 15px; pointer-events: none; }
 #time:empty { display: none; }
 
-/* stats: histograms and counts */
+/* stats: histograms */
 #left { padding: 0 2px 8px; }
 .grp { display: flex; align-items: center; gap: 8px; margin: 14px 2px 8px; font-family: var(--pixel); font-size: 15px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
 .grp::after { content: ""; flex: 1; height: 2px; background: var(--edge); }
@@ -233,13 +228,6 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 .hist .cap .clr { min-height: 0; padding: 0 6px; font: inherit; font-size: 15px; line-height: 22px; color: var(--ink); background: var(--edge); border: 0; border-radius: 4px; cursor: pointer; }
 .hist .tip { display: none; padding: 0 0 6px; font-size: 15px; color: var(--ink-2); }
 .hist.info .tip { display: block; }
-#counts { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; background: var(--panel); border: 2px solid var(--edge); }
-#counts th, #counts td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--edge); }
-#counts th { color: var(--ink-2); font-weight: 600; }
-#counts th:first-child, #counts td:first-child { text-align: left; }
-#counts td.c { cursor: pointer; }
-#counts td.c:hover { background: rgba(255, 176, 0, 0.14); }
-#counts td.z { color: var(--edge); }
 #note { margin: 12px 2px 0; font-size: 15px; color: var(--ink-2); }
 #note a { color: var(--ink); }
 
@@ -333,10 +321,6 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
   .ex-bar { display: contents; }
   .home-btn { order: -2; }
   #stats { order: 2; flex: 0 0 auto; margin-left: auto; padding: 0; }
-  #filters { display: flex; flex: 1 1 auto; padding: 0; }
-  #filters select, #f-q { flex: 0 0 auto; }
-  #f-q { width: 130px; }
-  #f-system { width: 160px; }
   select, input[type="search"] { font-size: 16px; min-height: 38px; }
   .ex-main { padding: 12px 14px 14px; }
   #data[data-tab="clips"] .ex-main { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 12px; }

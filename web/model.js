@@ -41,9 +41,7 @@ function renderModel(d, m) {
   $("m-body").innerHTML = `
     <article class="panel m-card">
       <h3>${esc(m.name)}</h3>
-      <p class="m-meta">${(m.parameters / 1000).toFixed(0)}k parameters · ${m.mb} MB · trained ${Math.round(m.train_minutes)} min on a laptop</p>
-      <p>${esc(m.about)}</p>
-      <p class="m-dim">${esc(d.common)}</p>
+      <p class="m-meta">${m.parameters >= 1e6 ? `${(m.parameters / 1e6).toFixed(1)}M` : `${(m.parameters / 1000).toFixed(0)}k`} parameters · ${m.mb} MB · ${Math.round(m.train_minutes)} min training</p>
     </article>
 
     <section class="panel m-card">
@@ -59,9 +57,7 @@ function renderModel(d, m) {
         ${[["Validation", r.validation], ["Test", r.test], ["In-the-Wild", r.in_the_wild]].map(([k, v]) =>
           `<tr><td>${k}</td><td>${pct(v.eer)}</td><td>${pct(v.fpr)}</td><td>${pct(v.catch, 0)}</td></tr>`).join("")}
       </table>
-      <p class="m-dim">EER: the error rate where misses equal false alarms. "Humans flagged" and "AI caught" use one fixed line, set so it flags 1% of validation humans.
-      Test: new speakers and 11 AI systems the model never heard. In-the-Wild: real and fake public figures from the internet.</p>
-      ${g && g.female != null ? `<p>Humans flagged on test: female ${pct(g.female)}, male ${pct(g.male)}.</p>` : ""}
+      ${g && g.female != null ? `<p>Test, humans flagged: female ${pct(g.female)} · male ${pct(g.male)}</p>` : ""}
     </section>
 
     <section class="panel m-card">
@@ -109,7 +105,7 @@ function lossChart(el, m) {
     ${xt.map((v) => `<text x="${x(v)}" y="${H - P.b + 20}" text-anchor="middle">${v}</text>`).join("")}
     <text x="${(P.l + W - P.r) / 2}" y="${H - 6}" text-anchor="middle">epoch</text>
     <line x1="${x(m.best_epoch)}" x2="${x(m.best_epoch)}" y1="${P.t}" y2="${H - P.b}" class="kept"/>
-    <text x="${x(m.best_epoch) + 5}" y="${P.t + 14}" class="kept-t">kept</text>
+    <text x="${x(m.best_epoch) + (x(m.best_epoch) > W * 0.7 ? -5 : 5)}" y="${P.t + 14}" text-anchor="${x(m.best_epoch) > W * 0.7 ? "end" : "start"}" class="kept-t">kept: epoch ${m.best_epoch}</text>
     <path d="${path(tr)}" fill="none" stroke="${COL.train}" stroke-width="2" stroke-linejoin="round"/>
     <path d="${path(va)}" fill="none" stroke="${COL.validation}" stroke-width="2" stroke-linejoin="round"/>
     ${va.map((p) => `<circle cx="${x(p[0])}" cy="${y(p[1])}" r="4" fill="${COL.validation}" stroke="var(--panel)" stroke-width="2"/>`).join("")}

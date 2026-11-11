@@ -7,6 +7,7 @@ and keeps the checkpoint with the lowest validation loss.
 
 Usage:
     uv run model/train.py --name lcnn_trim --trim vad --loss ce
+    uv run model/train.py --name resnet_trim --arch resnet
     uv run model/train.py --name smoke --limit 2000 --max-epochs 1     # quick test
     uv run model/train.py --name overfit --overfit                     # one batch must reach ~0 loss
 Outputs in runs/<name>/: steps.csv, checks.csv, curve.png, best.pt, results.json.
@@ -23,7 +24,7 @@ import torch
 
 from common import RUNS, REPO, itw_clips, la_clips, load
 from metrics import TARGET_FPR, eer, report, summary_line, threshold_at_fpr
-from nets import LCNN, loss_fn
+from nets import ARCHS, loss_fn
 
 SR = 16000
 
@@ -144,6 +145,7 @@ def plot(run, name: str, steps: list, checks: list) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--name", required=True)
+    ap.add_argument("--arch", choices=list(ARCHS), default="lcnn")
     ap.add_argument("--trim", choices=["vad", "none"], default="vad")
     ap.add_argument("--loss", choices=["ce", "oc"], default="ce")
     ap.add_argument("--seed", type=int, default=0)
@@ -180,10 +182,10 @@ def main() -> None:
     n_h, n_a = int((tr.label == 0).sum()), int((tr.label == 1).sum())
     w = torch.tensor([len(tr) / (2 * n_h), len(tr) / (2 * n_a)], dtype=torch.float32, device=dev)
 
-    model = LCNN(head=args.loss).to(dev)
+    model = ARCHS[args.arch](head=args.loss).to(dev)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
     n_params = sum(p.numel() for p in model.parameters())
-    print(f"{args.name}: {n_params:,} parameters, trim={args.trim}, loss={args.loss}, seed={args.seed}, "
+    print(f"{args.name}: {args.arch}, {n_params:,} parameters, trim={args.trim}, loss={args.loss}, seed={args.seed}, "
           f"weights human {w[0].item():.2f} / AI {w[1].item():.2f}", flush=True)
 
     L = int(args.crop * SR)

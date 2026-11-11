@@ -52,3 +52,8 @@ dist/
 
 # Static site build (sample audio is deployed by CLI, not stored in git)
 site/
+
+# Training runs: keep configs, logs, charts, results; not checkpoints, scores, or test runs
+runs/*/scores.npz
+runs/check_*/
+runs/smoke*/

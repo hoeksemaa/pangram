@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "A model that tells human speech from AI-generated speech."
 requires-python = ">=3.12"
 dependencies = [
+    "matplotlib>=3.11.2",
     "numpy>=2.0",
     "opensmile>=2.6.0",
+    "scikit-learn>=1.9.1",
+    "silero-vad>=6.2.3",
     "soundfile>=0.12",
+    "torch>=2.15.0",
+    "torchaudio>=2.11.1",
 ]

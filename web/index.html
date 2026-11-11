@@ -50,18 +50,16 @@
   <header class="ex-head">
     <div class="ex-bar">
       <a href="#/" class="btn btn-sm home-btn" aria-label="home" title="home"><span data-pix="home"></span></a>
-      <span id="stats" class="chips"></span>
+      <a id="b-source" class="btn btn-sm" href="https://datashare.ed.ac.uk/handle/10283/3336" target="_blank" rel="noopener" title="ASVspoof 2019 download page (Edinburgh DataShare)">See source <span data-pix="ext"></span></a>
       <button id="b-filters" class="btn btn-sm only-m" aria-expanded="false">Filters</button>
     </div>
+    <div id="stats" class="chips"></div>
     <div id="filters">
       <select id="f-split" aria-label="split"></select>
       <select id="f-label" aria-label="label"></select>
-      <select id="f-system" aria-label="system"></select>
+      <select id="f-system" aria-label="AI system"></select>
       <select id="f-gender" aria-label="gender"></select>
-      <input id="f-q" type="search" placeholder="id / speaker / hash" aria-label="search">
-      <label class="tog" title="only flagged clips"><input id="f-flag" type="checkbox"><span>flagged</span></label>
-      <label class="tog" title="only clips whose audio is identical to another clip"><input id="f-dup" type="checkbox"><span>dups</span></label>
-      <span class="sort"><select id="f-sort" aria-label="sort by"></select><button id="f-dir" class="btn btn-sm" title="sort direction">▲</button></span>
+      <input id="f-q" type="search" placeholder="search id" aria-label="search id">
       <button id="reset" class="btn btn-sm">Reset</button>
     </div>
     <nav id="ex-tabs" class="seg only-m"><button data-tab="clips" class="on">Clips</button><button data-tab="stats">Stats</button></nav>
@@ -73,11 +71,12 @@
       <p id="note"></p>
     </section>
     <section id="mid" class="panel">
-      <div id="thead"></div>
+      <div id="thead"><span>id</span><span>label</span></div>
       <div id="tbody"><div id="spacer"></div><div id="rows"></div></div>
     </section>
     <section id="right" class="panel">
-      <details id="meta-box"><summary id="meta-sum"></summary><div id="meta"></div></details>
+      <div id="clip-head"></div>
+      <p id="text" hidden></p>
       <div id="viz">
         <canvas id="wave"></canvas>
         <canvas id="spec"></canvas>
@@ -91,12 +90,6 @@
         <button id="b-rand" class="btn" title="random clip in the current filter (r)" aria-label="random"><span data-pix="dice"></span></button>
         <label class="tog" title="play when a clip is selected (a)"><input id="b-auto" type="checkbox" checked><span>auto</span></label>
         <label class="tog" title="go to the next clip when one ends (c)"><input id="b-chain" type="checkbox"><span>chain</span></label>
-      </div>
-      <div id="flagbox">
-        <input id="flag-note" placeholder="note (f)" aria-label="flag note">
-        <button id="flag-save" class="btn btn-flag" title="save flag (enter)">Flag</button>
-        <button id="flag-clear" class="btn">Unflag</button>
-        <button id="flag-export" class="btn" title="download your flags as JSON" hidden>Export</button>
       </div>
       <audio id="audio" preload="auto"></audio>
     </section>

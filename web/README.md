@@ -19,5 +19,6 @@ uv run scripts/build_site.py && cd site && vercel deploy --prod
 - **Colors:** blue = human, red = AI, everywhere; nothing else uses them.
 - **Histograms:** drag to filter, tap a bar for one bin, × or double-click to clear.
 - **AUC:** pick one human and one AI clip at random; AUC is the chance that one feature alone tells which is which (0.5 = no clue, 1 = always). Tap it in the app. Amber (≥ 0.75) = a possible shortcut.
-- **Keys (Data tab):** `j`/`k` next/previous · `space` play · `r` random · `f` note · `/` search · `a` autoplay · `c` chain
-- **Flags:** local server saves to `notes/flags.jsonl`; the website keeps them in the browser (export button).
+- **Clips:** id and label only. Tap a clip to see its waveform and play it. **See source** opens the dataset download page.
+- **Transcripts:** ASVspoof 2019 has none, so the player shows text only when the index has a `text` column.
+- **Keys (Data tab):** `j`/`k` next/previous · `space` play · `r` random · `/` search · `a` autoplay · `c` chain

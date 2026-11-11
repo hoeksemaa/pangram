@@ -1,59 +1,52 @@
-// The Data tab: explore ASVspoof 2019 LA. Filter, sort, histogram, listen, flag.
-// Runs two ways: web/serve.py (all clips, flags saved to notes/flags.jsonl)
-// or as the static site (a sample, flags saved in the browser).
+// The Data tab: explore ASVspoof 2019 LA. Filter, listen, and compare features.
+// Runs two ways: web/serve.py (all clips) or as the static site (a sample).
 
 const $ = (id) => document.getElementById(id);
 const BINS = 40;
 const MQ = matchMedia("(max-width: 899px)");
 const mobile = () => MQ.matches;
-const rowH = () => (mobile() ? 40 : 26);
-const FLAG_KEY = "flags:asvspoof2019-la";
+const rowH = () => (mobile() ? 44 : 30);
 
-// Auditory features from scripts/build_index.py, in groups. Each gets a histogram.
+// Auditory features from scripts/build_index.py, in groups. Each gets a histogram on the Stats tab.
 const NUM = [
-  { g: "time", k: "dur", short: "dur", name: "duration", unit: "s", dec: 2, tip: "clip length" },
-  { g: "time", k: "syl_rate", short: "syl/s", name: "syllable rate", unit: "/s", dec: 2, tip: "loudness peaks per second, close to syllables per second (eGeMAPS)" },
-  { g: "time", k: "voiced_s", short: "vrun", name: "voiced run", unit: "s", dec: 2, tip: "mean length of one stretch of voiced sound (eGeMAPS)" },
-  { g: "pitch", k: "f0_hz", short: "f0", name: "pitch", unit: "Hz", dec: 0, tip: "mean pitch of the voice (eGeMAPS F0)" },
-  { g: "pitch", k: "f0_range_st", short: "f0rng", name: "pitch range", unit: "st", dec: 1, tip: "20th to 80th percentile of pitch, in semitones: monotone vs. expressive (eGeMAPS)" },
-  { g: "pitch", k: "f0_rise", short: "f0 up", name: "pitch rise speed", unit: "st/s", dec: 0, tip: "mean slope of rising pitch, in semitones per second (eGeMAPS)" },
-  { g: "voice quality", k: "jitter_pct", short: "jit", name: "jitter", unit: "%", dec: 2, tip: "cycle-to-cycle change in pitch period: rough vs. smooth (eGeMAPS)" },
-  { g: "voice quality", k: "shimmer_db", short: "shim", name: "shimmer", unit: "dB", dec: 2, tip: "cycle-to-cycle change in loudness: rough vs. smooth (eGeMAPS)" },
-  { g: "voice quality", k: "hnr_db", short: "hnr", name: "harmonics-to-noise", unit: "dB", dec: 1, tip: "energy in the harmonics vs. noise: clear vs. breathy or hoarse (eGeMAPS)" },
-  { g: "voice quality", k: "h1h2_db", short: "h1h2", name: "breathiness (H1–H2)", unit: "dB", dec: 1, tip: "first harmonic minus second harmonic: higher = breathier (eGeMAPS)" },
-  { g: "vowels", k: "f1_hz", short: "F1", name: "F1", unit: "Hz", dec: 0, tip: "mean first formant: how open the mouth is (eGeMAPS)" },
-  { g: "vowels", k: "f2_hz", short: "F2", name: "F2", unit: "Hz", dec: 0, tip: "mean second formant: tongue front vs. back (eGeMAPS)" },
-  { g: "timbre", k: "bright_hz", short: "brt", name: "brightness", unit: "Hz", dec: 0, tip: "median spectral centroid of speech frames: dull vs. bright" },
-  { g: "timbre", k: "flux", short: "flux", name: "spectral change", unit: "", dec: 2, tip: "how much the spectrum changes from one frame to the next (eGeMAPS spectral flux)" },
-  { g: "timbre", k: "spec_detail_db", short: "detail", name: "spectral detail", unit: "dB", dec: 1, tip: "mean variation over time of 40 mel bands in speech frames: low = over-smoothed" },
-  { g: "loudness", k: "rms_db", short: "rms", name: "loudness", unit: "dBFS", dec: 1, tip: "overall RMS level" },
-  { g: "loudness", k: "loud_range_db", short: "dyn", name: "dynamics", unit: "dB", dec: 1, tip: "10th to 90th percentile of 20 ms frame levels in speech" },
+  { g: "time", k: "dur", name: "duration", unit: "s", dec: 2, tip: "clip length" },
+  { g: "time", k: "syl_rate", name: "syllable rate", unit: "/s", dec: 2, tip: "loudness peaks per second, close to syllables per second (eGeMAPS)" },
+  { g: "time", k: "voiced_s", name: "voiced run", unit: "s", dec: 2, tip: "mean length of one stretch of voiced sound (eGeMAPS)" },
+  { g: "pitch", k: "f0_hz", name: "pitch", unit: "Hz", dec: 0, tip: "mean pitch of the voice (eGeMAPS F0)" },
+  { g: "pitch", k: "f0_range_st", name: "pitch range", unit: "st", dec: 1, tip: "20th to 80th percentile of pitch, in semitones: monotone vs. expressive (eGeMAPS)" },
+  { g: "pitch", k: "f0_rise", name: "pitch rise speed", unit: "st/s", dec: 0, tip: "mean slope of rising pitch, in semitones per second (eGeMAPS)" },
+  { g: "voice quality", k: "jitter_pct", name: "jitter", unit: "%", dec: 2, tip: "cycle-to-cycle change in pitch period: rough vs. smooth (eGeMAPS)" },
+  { g: "voice quality", k: "shimmer_db", name: "shimmer", unit: "dB", dec: 2, tip: "cycle-to-cycle change in loudness: rough vs. smooth (eGeMAPS)" },
+  { g: "voice quality", k: "hnr_db", name: "harmonics-to-noise", unit: "dB", dec: 1, tip: "energy in the harmonics vs. noise: clear vs. breathy or hoarse (eGeMAPS)" },
+  { g: "voice quality", k: "h1h2_db", name: "breathiness (H1–H2)", unit: "dB", dec: 1, tip: "first harmonic minus second harmonic: higher = breathier (eGeMAPS)" },
+  { g: "vowels", k: "f1_hz", name: "F1", unit: "Hz", dec: 0, tip: "mean first formant: how open the mouth is (eGeMAPS)" },
+  { g: "vowels", k: "f2_hz", name: "F2", unit: "Hz", dec: 0, tip: "mean second formant: tongue front vs. back (eGeMAPS)" },
+  { g: "timbre", k: "bright_hz", name: "brightness", unit: "Hz", dec: 0, tip: "median spectral centroid of speech frames: dull vs. bright" },
+  { g: "timbre", k: "flux", name: "spectral change", unit: "", dec: 2, tip: "how much the spectrum changes from one frame to the next (eGeMAPS spectral flux)" },
+  { g: "timbre", k: "spec_detail_db", name: "spectral detail", unit: "dB", dec: 1, tip: "mean variation over time of 40 mel bands in speech frames: low = over-smoothed" },
+  { g: "loudness", k: "rms_db", name: "loudness", unit: "dBFS", dec: 1, tip: "overall RMS level" },
+  { g: "loudness", k: "loud_range_db", name: "dynamics", unit: "dB", dec: 1, tip: "10th to 90th percentile of 20 ms frame levels in speech" },
 ];
-const COLS = [
-  { k: "flag", name: "⚑", w: 22, tip: "flagged" },
-  { k: "id", name: "id", w: 116 },
-  { k: "split", name: "split", w: 42, cat: true },
-  { k: "label", name: "label", w: 58, cat: true },
-  { k: "system", name: "sys", w: 38, cat: true, tip: "attack system (– = human)" },
-  { k: "speaker", name: "spk", w: 72, cat: true },
-  { k: "gender", name: "g", w: 22, cat: true, tip: "speaker gender (dev and eval only)" },
-  ...NUM.map((f) => ({ k: f.k, name: f.short, w: 54, num: true, dec: f.dec, tip: `${f.name}${f.unit ? " (" + f.unit + ")" : ""}: ${f.tip}` })),
-  { k: "sr", name: "sr", w: 46, num: true, dec: 0, tip: "sample rate (Hz)" },
-  { k: "dup", name: "dup", w: 32, num: true, dec: 0, tip: "number of clips with identical audio" },
-];
-const MOBILE_KEYS = ["flag", "id", "label", "system", "speaker"];
-const CAT_KEYS = ["split", "label", "system", "speaker", "gender"];
-
-let N = 0, doc, cat, ids, hashes, errs, HUMAN = -1, AI = -1, serverFlags = false;
-const C = {};
-const S = {
-  rows: new Uint32Array(0), sortKey: "id", sortDir: 1, sel: -1,
-  ranges: {}, dom: {}, hist: [], flags: new Map(), counts: null, nhna: [0, 0],
+// The AI systems in plain words (dataset README). TTS = text-to-speech; VC = voice conversion.
+const SYSTEMS = {
+  A01: "text-to-speech, neural waveform", A02: "text-to-speech, vocoder", A03: "text-to-speech, vocoder",
+  A04: "text-to-speech, waveform concatenation", A05: "voice conversion, vocoder", A06: "voice conversion, spectral filtering",
+  A07: "text-to-speech, vocoder + GAN", A08: "text-to-speech, neural waveform", A09: "text-to-speech, vocoder",
+  A10: "text-to-speech, neural waveform", A11: "text-to-speech, Griffin-Lim", A12: "text-to-speech, neural waveform",
+  A13: "TTS + VC, concatenation + filtering", A14: "TTS + VC, vocoder", A15: "TTS + VC, neural waveform",
+  A16: "text-to-speech, waveform concatenation", A17: "voice conversion, waveform filtering", A18: "voice conversion, vocoder",
+  A19: "voice conversion, spectral filtering", enroll: "speaker enrollment, not labeled",
 };
+const sysName = (v) => (v === "-" ? "human" : SYSTEMS[v] ? `${v} · ${SYSTEMS[v]}` : v);
+const labelName = (v) => (v === "ai" ? "AI" : v === "?" ? "unlabeled" : v);
+const CAT_KEYS = ["split", "label", "system", "gender"];
+
+let N = 0, doc, cat, ids, errs, texts = null, HUMAN = -1, AI = -1;
+const C = {};
+const S = { rows: new Uint32Array(0), sel: -1, ranges: {}, dom: {}, hist: [], counts: null, nhna: [0, 0] };
 
 // ---------- helpers ----------
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const fmt = (v, dec) => (v !== v ? "" : v.toFixed(dec));
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const dpr = () => window.devicePixelRatio || 1;
 function fit(cv) {
@@ -68,23 +61,9 @@ function domain(arr) {
   if (hi <= lo) { lo -= 0.5; hi += 0.5; }
   return [lo, hi];
 }
-function visCols() {
-  if (!mobile()) return COLS;
-  const cols = COLS.filter((c) => MOBILE_KEYS.includes(c.k));
-  const s = COLS.find((c) => c.k === S.sortKey);
-  if (s && !MOBILE_KEYS.includes(s.k)) cols.push(s);
-  return cols;
-}
 const audioUrl = (i) => `${doc.audio.base}/${cat.split[C.split[i]]}/${ids[i]}.${doc.audio.ext}`;
 
 // ---------- load ----------
-async function loadFlags(tryServer) {
-  if (tryServer) try {
-    const r = await fetch("flags");
-    if (r.ok && (r.headers.get("content-type") || "").includes("json")) { serverFlags = true; return await r.json(); }
-  } catch { /* static site */ }
-  try { return JSON.parse(localStorage.getItem(FLAG_KEY) || "{}"); } catch { return {}; }
-}
 let loading = null;
 export function initExplorer() {
   loading = loading || load().catch((e) => { $("stats").textContent = `error: ${e.message}`; throw e; });
@@ -96,22 +75,19 @@ const visible = () => document.body.dataset.screen === "data";
 async function load() {
   $("stats").textContent = "loading…";
   const d = await fetch("index.json").then((r) => { if (!r.ok) throw new Error(`index.json ${r.status}`); return r.json(); });
-  const flags = await loadFlags(!d.sample); // the static site (a sample) has no flag server
-  doc = d; N = d.n; cat = d.cat; ids = d.cols.id; hashes = d.cols.hash; errs = d.cols.err;
+  doc = d; N = d.n; cat = d.cat; ids = d.cols.id; errs = d.cols.err; texts = d.cols.text || null;
   doc.audio = doc.audio || { base: "audio", ext: "flac" };
   for (const k of CAT_KEYS) C[k] = Uint16Array.from(d.cols[k]);
-  for (const k of [...NUM.map((f) => f.k), "sr", "ch", "dup"]) {
+  for (const k of [...NUM.map((f) => f.k), "sr"]) {
     const src = d.cols[k], a = new Float64Array(N);
     for (let i = 0; i < N; i++) a[i] = src[i] == null ? NaN : src[i];
     C[k] = a;
   }
   HUMAN = cat.label.indexOf("human"); AI = cat.label.indexOf("ai");
   for (const f of NUM) S.dom[f.k] = domain(C[f.k]);
-  S.flags = new Map(Object.entries(flags));
-  $("flag-export").hidden = serverFlags;
   const src = '<a href="https://datashare.ed.ac.uk/handle/10283/3336" target="_blank" rel="noopener">ASVspoof 2019</a> (ODC-By 1.0)';
   $("note").innerHTML = doc.sample
-    ? `A sample: ${N.toLocaleString()} of ${doc.sample.n_total.toLocaleString()} clips, ${doc.sample.per_group} from each split × system. Data: ${src}.`
+    ? `A sample: ${N.toLocaleString()} of ${doc.sample.n_total.toLocaleString()} clips, ${doc.sample.per_group} from each split × AI system. Data: ${src}.`
     : `Data: ${src}.`;
   initFilters(); initHists(); bind();
   apply();
@@ -124,20 +100,16 @@ function initFilters() {
     $(id).innerHTML = `<option value="">${name}</option>` + vocab.map((v, i) => `<option value="${i}">${esc(show(v))}</option>`).join("");
   };
   opts("f-split", "split", cat.split);
-  opts("f-label", "label", cat.label);
-  opts("f-system", "system", cat.system, (v) => (v === "-" ? "– human" : v));
+  opts("f-label", "label", cat.label, labelName);
+  opts("f-system", "AI system", cat.system, sysName);
   opts("f-gender", "gender", cat.gender);
-  $("f-sort").innerHTML = COLS.filter((c) => c.k !== "flag").map((c) => `<option value="${c.k}">sort: ${c.k === "id" ? "id" : c.name}</option>`).join("") + '<option value="flag">sort: flagged</option>';
 }
 function readF() {
   const n = (id) => ($(id).value === "" ? -1 : +$(id).value);
-  return {
-    split: n("f-split"), label: n("f-label"), system: n("f-system"), gender: n("f-gender"),
-    q: $("f-q").value.trim().toUpperCase(), flag: $("f-flag").checked, dup: $("f-dup").checked,
-  };
+  return { split: n("f-split"), label: n("f-label"), system: n("f-system"), gender: n("f-gender"), q: $("f-q").value.trim().toUpperCase() };
 }
 
-// One pass over all clips: table rows, class counts, histograms (each ignores its own
+// One pass over all clips: list rows, class counts, histograms (each ignores its own
 // range filter), and the system x split counts (which ignore the split and system filters).
 function apply() {
   const F = readF();
@@ -153,9 +125,7 @@ function apply() {
     const lab = C.label[i];
     if (F.label >= 0 && lab !== F.label) continue;
     if (F.gender >= 0 && C.gender[i] !== F.gender) continue;
-    if (F.flag && !S.flags.has(ids[i])) continue;
-    if (F.dup && !(C.dup[i] > 1)) continue;
-    if (F.q && !(ids[i].includes(F.q) || cat.speaker[C.speaker[i]].includes(F.q) || hashes[i].toUpperCase().startsWith(F.q))) continue;
+    if (F.q && !ids[i].includes(F.q)) continue;
     let fails = 0, failed = -1;
     for (const r of ranges) {
       const v = r.v[i];
@@ -174,74 +144,34 @@ function apply() {
       (lab === HUMAN ? hist[fi].h : hist[fi].a)[k]++;
     }
   }
-  S.rows = Uint32Array.from(out);
+  S.rows = Uint32Array.from(out); // the index is sorted by id
   S.hist = hist; S.counts = counts; S.nhna = [nh, na];
-  sortRows();
   S.sel = prev >= 0 ? S.rows.indexOf(prev) : -1;
   updateStats(); layoutRows(); drawHists(); drawCounts();
 }
 function updateStats() {
   const [h, a] = S.nhna;
-  const all = S.rows.length === N ? N.toLocaleString() : `${S.rows.length.toLocaleString()}/${N.toLocaleString()}`;
-  $("stats").innerHTML = `<span class="chip" title="clips shown">${all}</span><span class="chip h" title="human clips shown">${h.toLocaleString()}</span>`
-    + `<span class="chip a" title="AI clips shown">${a.toLocaleString()}</span>`
-    + (S.flags.size ? `<span class="chip f" title="flagged clips">⚑ ${S.flags.size}</span>` : "");
+  const n = (x) => x.toLocaleString();
+  const shown = S.rows.length === N ? n(N) : `${n(S.rows.length)} / ${n(N)}`;
+  const full = doc.sample ? ` <span class="dim">(${n(doc.sample.n_total)} in full set)</span>` : "";
+  $("stats").innerHTML = `<span class="chip" title="clips shown">${shown} data points${full}</span>`
+    + `<span class="chip h" title="human clips shown">${n(h)} human</span><span class="chip a" title="AI clips shown">${n(a)} AI</span>`;
 }
 
-// ---------- table ----------
-function sortRows() {
-  const k = S.sortKey, d = S.sortDir;
-  if (k === "id") S.rows.sort((x, y) => d * (x - y)); // the index is sorted by id
-  else if (k === "flag") S.rows.sort((x, y) => (S.flags.has(ids[y]) - S.flags.has(ids[x])) * d || x - y);
-  else {
-    const v = C[k];
-    S.rows.sort((x, y) => {
-      const a = v[x], b = v[y], na = a !== a, nb = b !== b;
-      if (na || nb) return na - nb;
-      return d * (a - b) || x - y;
-    });
-  }
-}
-function setSort(k, dir) {
-  const col = COLS.find((c) => c.k === k);
-  S.sortKey = k; S.sortDir = dir ?? (col && col.num ? -1 : 1);
-  const id = S.sel >= 0 ? S.rows[S.sel] : -1;
-  sortRows(); S.sel = id >= 0 ? S.rows.indexOf(id) : -1;
-  $("f-sort").value = k; $("f-dir").textContent = S.sortDir > 0 ? "▲" : "▼";
-  layoutRows(); if (S.sel >= 0) scrollToRow(S.sel);
-}
+// ---------- clip list: id and label ----------
 function layoutRows() {
-  const cols = visCols(), w = Math.max(cols.reduce((s, c) => s + c.w, 0), $("tbody").clientWidth);
-  $("rows").style.width = $("spacer").style.width = `${w}px`;
   $("spacer").style.height = `${S.rows.length * rowH()}px`;
-  $("thead").innerHTML = `<div style="display:flex;min-width:${w}px">` + cols.map((c) => {
-    const on = c.k === S.sortKey, arrow = on ? (S.sortDir > 0 ? " ▲" : " ▼") : "";
-    return `<span data-k="${c.k}" class="${on ? "on" : ""}" title="${esc(c.tip || c.k)}" style="flex:${c.k === "id" ? 1 : 0} 0 ${c.w}px;${c.num ? "text-align:right" : ""}">${c.name}${arrow}</span>`;
-  }).join("") + "</div>";
   renderRows();
 }
-function cell(c, i) {
-  const st = `style="flex:0 0 ${c.w}px"`;
-  if (c.k === "flag") return `<span ${st} class="fl">${S.flags.has(ids[i]) ? "⚑" : ""}</span>`;
-  if (c.k === "id") return `<span style="flex:1 0 ${c.w}px">${ids[i]}</span>`; // takes the spare width
-  if (c.cat) {
-    const v = cat[c.k][C[c.k][i]];
-    const cls = c.k === "label" ? v : "";
-    const show = c.k === "system" && v === "-" ? "–" : c.k === "gender" ? v[0] : v;
-    return `<span ${st} class="${cls}" data-k="${c.k}">${esc(show)}</span>`;
-  }
-  return `<span ${st} class="n">${fmt(C[c.k][i], c.dec)}</span>`;
-}
 function renderRows() {
-  const tb = $("tbody"), h = rowH(), top = tb.scrollTop, H = tb.clientHeight || 800, cols = visCols();
+  const tb = $("tbody"), h = rowH(), top = tb.scrollTop, H = tb.clientHeight || 800;
   const a = Math.max(0, Math.floor(top / h) - 15);
   const b = Math.min(S.rows.length, Math.ceil((top + H) / h) + 15);
   let html = "";
   for (let p = a; p < b; p++) {
-    const i = S.rows[p];
-    html += `<div class="r${p === S.sel ? " sel" : ""}${errs[i] ? " err" : ""}" data-p="${p}" style="top:${p * h}px;height:${h}px">`;
-    for (const c of cols) html += cell(c, i);
-    html += "</div>";
+    const i = S.rows[p], L = cat.label[C.label[i]];
+    html += `<div class="r${p === S.sel ? " sel" : ""}${errs[i] ? " err" : ""}" data-p="${p}" style="top:${p * h}px;height:${h}px">`
+      + `<span class="id">${ids[i]}</span><span class="lab ${esc(L)}">${esc(labelName(L))}</span></div>`;
   }
   $("rows").innerHTML = html;
 }
@@ -257,7 +187,7 @@ function initHists() {
     <div class="hist" data-fi="${fi}">
       <div class="cap"><span class="nm" title="${esc(f.tip)}"><b>${f.name}</b> ${f.unit}</span><span class="rng"></span>
         <button class="clr" hidden title="clear this filter">×</button>
-        <span class="auc" title="AUC of this statistic alone, human vs AI (0.5 = no information). Red = a possible shortcut."></span></div>
+        <span class="auc" title="Pick one human and one AI clip at random: AUC is the chance this feature alone tells which is which."></span></div>
       <div class="tip">${esc(f.tip)}<br><span class="dim">AUC: pick one human and one AI clip at random; AUC is the chance this feature alone tells which is which. 0.5 = no clue, 1 = always.</span></div>
       <canvas title="Drag to filter a range. Tap a bar for one bin. Double-click or × to clear."></canvas>
     </div>`).join("");
@@ -307,7 +237,7 @@ function drawHist(fi, drag) {
   if (drag) sel = [Math.min(drag.x0, drag.x1) * dpr(), Math.max(drag.x0, drag.x1) * dpr()];
   else if (r) sel = [r[0] === -Infinity ? 0 : ((r[0] - lo) / (hi - lo)) * W, r[1] === Infinity ? W : ((r[1] - lo) / (hi - lo)) * W];
   if (sel) {
-    g.fillStyle = "rgba(255,194,61,0.16)"; g.fillRect(sel[0], 0, sel[1] - sel[0], H);
+    g.fillStyle = "rgba(255,176,0,0.16)"; g.fillRect(sel[0], 0, sel[1] - sel[0], H);
     g.strokeStyle = css("--gold"); g.lineWidth = 2 * dpr(); g.strokeRect(sel[0] + dpr(), dpr(), sel[1] - sel[0] - 2 * dpr(), H - 2 * dpr());
   }
   const show = (v) => (Math.abs(v) === Infinity ? "…" : v.toFixed(f.dec));
@@ -325,11 +255,11 @@ function drawHist(fi, drag) {
   ae.className = `auc${auc >= 0.75 ? " hi" : ""}`;
 }
 
-// ---------- counts: system x split ----------
+// ---------- counts: AI system x split ----------
 function drawCounts() {
   const order = ["train", "dev", "eval"].map((s) => cat.split.indexOf(s)).filter((x) => x >= 0);
   const nSplit = cat.split.length, F = readF();
-  let html = `<tr><th>system</th>${order.map((c) => `<th>${cat.split[c]}</th>`).join("")}<th>all</th></tr>`;
+  let html = `<tr><th>AI system</th>${order.map((c) => `<th>${cat.split[c]}</th>`).join("")}<th>all</th></tr>`;
   cat.system.forEach((s, si) => {
     let tot = 0;
     const tds = order.map((c) => {
@@ -337,7 +267,7 @@ function drawCounts() {
       const on = F.system === si && F.split === c ? ' style="font-weight:600"' : "";
       return `<td class="c${v ? "" : " z"}" data-sys="${si}" data-split="${c}"${on}>${v.toLocaleString()}</td>`;
     }).join("");
-    html += `<tr><td class="c" data-sys="${si}" data-split="">${s === "-" ? "– human" : esc(s)}</td>${tds}<td>${tot.toLocaleString()}</td></tr>`;
+    html += `<tr><td class="c" data-sys="${si}" data-split="" title="${esc(sysName(s))}">${s === "-" ? "human" : esc(s)}</td>${tds}<td>${tot.toLocaleString()}</td></tr>`;
   });
   $("counts").innerHTML = html;
 }
@@ -351,11 +281,18 @@ function select(p, autoplay = $("b-auto").checked) {
   p = Math.max(0, Math.min(S.rows.length - 1, p));
   S.sel = p; scrollToRow(p); renderRows();
   const i = S.rows[p], t = ++token, src = audioUrl(i);
-  showMeta(i);
+  showClip(i);
   cur = { i, ab: null };
   A.src = src;
   if (autoplay) A.play().catch(() => {});
   loadViz(i, src, t);
+}
+function showClip(i) {
+  const L = cat.label[C.label[i]];
+  $("clip-head").innerHTML = `<span class="badge ${esc(L)}">${esc(labelName(L))}</span><b>${ids[i]}</b>`;
+  const text = texts && texts[i];
+  $("text").hidden = !text;
+  $("text").textContent = text ? `“${text}”` : "";
 }
 async function loadViz(i, src, t) {
   try {
@@ -372,28 +309,16 @@ async function decode(buf, sr) {
   try { return await new OfflineAudioContext(1, 1, sr > 0 ? sr : 16000).decodeAudioData(buf.slice(0)); }
   catch { ctx = ctx || new AudioContext(); return await ctx.decodeAudioData(buf.slice(0)); }
 }
-function showMeta(i) {
-  const L = cat.label[C.label[i]], sys = cat.system[C.system[i]];
-  $("meta-sum").innerHTML = `<span class="badge ${esc(L)}">${L === "ai" ? "AI" : esc(L)}</span> <b>${ids[i]}</b> <span class="dim">${sys === "-" ? "" : esc(sys) + " · "}${cat.speaker[C.speaker[i]]} · ${fmt(C.dur[i], 2)} s</span>`;
-  const kv = [
-    ["split", cat.split[C.split[i]]], ["gender", cat.gender[C.gender[i]]],
-    ...NUM.filter((f) => f.k !== "dur").map((f) => [f.short, `${fmt(C[f.k][i], f.dec)} ${f.unit}`]),
-    ["sr", C.sr[i]], ["dup", C.dup[i]], ["hash", hashes[i]],
-  ];
-  if (errs[i]) kv.push(["error", esc(errs[i])]);
-  $("meta").innerHTML = kv.map(([k, v]) => `<span class="k">${k}</span><span>${v}</span>`).join("");
-  $("flag-note").value = S.flags.get(ids[i]) ?? "";
-}
 function clearViz(msg) {
   for (const id of ["wave", "spec"]) fit($(id)).clearRect(0, 0, $(id).width, $(id).height);
   const g = $("spec").getContext("2d");
-  g.fillStyle = "#ccc"; g.font = `${13 * dpr()}px "Pixelify Sans", monospace`; g.fillText(msg, 10, 24);
+  g.fillStyle = "#ccc"; g.font = `${13 * dpr()}px "Share Tech Mono", monospace`; g.fillText(msg, 10, 24);
 }
 function drawViz() { if (cur && cur.ab && $("spec").clientWidth) { drawWave(cur.ab, cur.i); drawSpec(cur.ab, C.sr[cur.i]); } }
 function drawWave(ab, i) {
   const cv = $("wave"), g = fit(cv), W = cv.width, H = cv.height, x = ab.getChannelData(0);
   g.clearRect(0, 0, W, H);
-  g.strokeStyle = C.label[i] === HUMAN ? css("--human") : css("--ai");
+  g.strokeStyle = C.label[i] === HUMAN ? css("--human") : C.label[i] === AI ? css("--ai") : css("--ink-2");
   g.lineWidth = 1; g.beginPath();
   const spp = x.length / W;
   for (let px = 0; px < W; px++) {
@@ -463,7 +388,7 @@ function drawSpec(ab, sr) {
   og.putImageData(img, 0, 0);
   const cv = $("spec"), g = fit(cv), W = cv.width, H = cv.height;
   g.imageSmoothingEnabled = true; g.drawImage(off, 0, 0, W, H);
-  g.fillStyle = "rgba(255,255,255,0.8)"; g.font = `${11 * dpr()}px "Pixelify Sans", monospace`;
+  g.fillStyle = "rgba(255,255,255,0.8)"; g.font = `${11 * dpr()}px "Share Tech Mono", monospace`;
   const fTop = (nb / nfft) * rate;
   for (let k = 2; k * 1000 < fTop; k += 2) g.fillText(`${k}k`, 3 * dpr(), H - ((k * 1000) / fTop) * H + 4 * dpr());
 }
@@ -476,31 +401,9 @@ function tick() {
 }
 const togglePlay = () => { if (A.src) A.paused ? A.play().catch(() => {}) : A.pause(); };
 const randomPick = () => { if (S.rows.length) select(Math.floor(Math.random() * S.rows.length)); };
-async function setFlag(note) {
-  if (!cur) return;
-  const id = ids[cur.i];
-  if (serverFlags) {
-    const r = await fetch("flags", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, note }) });
-    if (!r.ok) return;
-    S.flags = new Map(Object.entries(await r.json()));
-  } else {
-    if (note == null) S.flags.delete(id); else S.flags.set(id, note);
-    try { localStorage.setItem(FLAG_KEY, JSON.stringify(Object.fromEntries(S.flags))); } catch { /* private mode */ }
-  }
-  $("flag-note").value = S.flags.get(id) ?? "";
-  renderRows(); updateStats();
-}
-function exportFlags() {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(Object.fromEntries(S.flags), null, 1)], { type: "application/json" }));
-  a.download = "flags.json"; a.click();
-}
 
 // ---------- layout + events ----------
-function layout() {
-  $("meta-box").open = !mobile();
-  layoutRows(); drawHists(); drawViz();
-}
+function layout() { layoutRows(); drawHists(); drawViz(); }
 function setTab(t) {
   $("data").dataset.tab = t;
   document.querySelectorAll("#ex-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === t));
@@ -508,13 +411,11 @@ function setTab(t) {
 }
 function bind() {
   let qt, rt;
-  for (const id of ["f-split", "f-label", "f-system", "f-gender", "f-flag", "f-dup"]) $(id).addEventListener("change", apply);
+  for (const id of ["f-split", "f-label", "f-system", "f-gender"]) $(id).addEventListener("change", apply);
   $("f-q").addEventListener("input", () => { clearTimeout(qt); qt = setTimeout(apply, 150); });
-  $("f-sort").addEventListener("change", () => setSort($("f-sort").value));
-  $("f-dir").addEventListener("click", () => setSort(S.sortKey, -S.sortDir));
   $("reset").addEventListener("click", () => {
     for (const id of ["f-split", "f-label", "f-system", "f-gender", "f-q"]) $(id).value = "";
-    $("f-flag").checked = $("f-dup").checked = false; S.ranges = {}; apply();
+    S.ranges = {}; apply();
   });
   $("b-filters").addEventListener("click", () => {
     const on = $("data").classList.toggle("show-filters");
@@ -522,18 +423,8 @@ function bind() {
     renderRows();
   });
   document.querySelectorAll("#ex-tabs button").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
-  $("tbody").addEventListener("scroll", () => { $("thead").scrollLeft = $("tbody").scrollLeft; renderRows(); }, { passive: true });
-  $("thead").addEventListener("click", (e) => {
-    const k = e.target.closest("span")?.dataset.k; if (!k) return;
-    setSort(k, S.sortKey === k ? -S.sortDir : undefined);
-  });
-  $("rows").addEventListener("click", (e) => {
-    const sp = e.target.closest("span"), row = e.target.closest(".r"); if (!row) return;
-    const i = S.rows[+row.dataset.p];
-    if (!mobile() && sp?.dataset.k === "speaker") { $("f-q").value = cat.speaker[C.speaker[i]]; apply(); return; }
-    if (!mobile() && sp?.dataset.k === "system") { $("f-system").value = C.system[i]; apply(); return; }
-    select(+row.dataset.p);
-  });
+  $("tbody").addEventListener("scroll", renderRows, { passive: true });
+  $("rows").addEventListener("click", (e) => { const row = e.target.closest(".r"); if (row) select(+row.dataset.p); });
   $("counts").addEventListener("click", (e) => {
     const td = e.target.closest("td.c"); if (!td) return;
     $("f-system").value = td.dataset.sys; $("f-split").value = td.dataset.split; apply();
@@ -542,15 +433,11 @@ function bind() {
   $("b-next").addEventListener("click", () => select(S.sel + 1));
   $("b-play").addEventListener("click", togglePlay);
   $("b-rand").addEventListener("click", randomPick);
-  $("flag-save").addEventListener("click", () => setFlag($("flag-note").value.trim() || "flagged"));
-  $("flag-clear").addEventListener("click", () => setFlag(null));
-  $("flag-export").addEventListener("click", exportFlags);
   $("viz").addEventListener("click", (e) => {
     const r = $("viz").getBoundingClientRect();
     if (A.duration && isFinite(A.duration)) { A.currentTime = ((e.clientX - r.left) / r.width) * A.duration; tick(); }
   });
   A.addEventListener("play", () => { $("b-play").textContent = "❚❚"; requestAnimationFrame(tick); });
-  A.addEventListener("ended", () => $("viz").classList.remove("live"));
   A.addEventListener("pause", () => { $("b-play").textContent = "▶"; tick(); });
   A.addEventListener("loadedmetadata", tick);
   A.addEventListener("ended", () => { if ($("b-chain").checked && S.sel < S.rows.length - 1) select(S.sel + 1, true); });
@@ -560,19 +447,14 @@ function bind() {
   document.addEventListener("keydown", (e) => {
     if (!visible()) return;
     const el = document.activeElement, tag = el?.tagName;
-    if ((tag === "INPUT" && el.type !== "checkbox") || tag === "SELECT") {
-      if (e.key === "Escape") el.blur();
-      if (e.key === "Enter" && el === $("flag-note")) { $("flag-save").click(); el.blur(); }
-      return;
-    }
+    if ((tag === "INPUT" && el.type !== "checkbox") || tag === "SELECT") { if (e.key === "Escape") el.blur(); return; }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const keys = {
       j: () => select(S.sel + 1), ArrowDown: () => select(S.sel + 1),
       k: () => select(S.sel - 1), ArrowUp: () => select(S.sel - 1),
-      " ": togglePlay, r: randomPick, f: () => $("flag-note").focus(), "/": () => $("f-q").focus(),
+      " ": togglePlay, r: randomPick, "/": () => $("f-q").focus(),
       a: () => $("b-auto").click(), c: () => $("b-chain").click(),
     };
     if (keys[e.key]) { e.preventDefault(); keys[e.key](); }
   });
 }
-

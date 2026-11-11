@@ -17,6 +17,7 @@ uv run scripts/build_site.py && cd site && vercel deploy --prod
 
 - **Features:** time, pitch, voice quality, vowels, timbre, loudness. Most come from eGeMAPS ([openSMILE](https://audeering.github.io/opensmile-python/)). Tap a feature name for what it means.
 - **Colors:** blue = human, red = AI, everywhere; nothing else uses them.
+- **Text:** easy to read on a phone. Nothing under 15px; body 17px.
 - **Histograms:** drag to filter, tap a bar for one bin, × or double-click to clear.
 - **AUC:** pick one human and one AI clip at random; AUC is the chance that one feature alone tells which is which (0.5 = no clue, 1 = always). Tap it in the app. Amber (≥ 0.75) = a possible shortcut.
 - **Clips:** a number (001, 002, … in index order; display only, the dataset id is the hover title) and the label. Tap a clip to see its waveform and play it. **See source** opens the dataset download page.

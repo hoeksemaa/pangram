@@ -5,7 +5,7 @@ const $ = (id) => document.getElementById(id);
 const BINS = 40;
 const MQ = matchMedia("(max-width: 899px)");
 const mobile = () => MQ.matches;
-const rowH = () => (mobile() ? 44 : 30);
+const rowH = () => (mobile() ? 48 : 36);
 
 // Auditory features from scripts/build_index.py, in groups. Each gets a histogram on the Stats tab.
 const NUM = [
@@ -318,7 +318,7 @@ async function decode(buf, sr) {
 function clearViz(msg) {
   for (const id of ["wave", "spec"]) fit($(id)).clearRect(0, 0, $(id).width, $(id).height);
   const g = $("spec").getContext("2d");
-  g.fillStyle = "#ccc"; g.font = `${13 * dpr()}px "Share Tech Mono", monospace`; g.fillText(msg, 10, 24);
+  g.fillStyle = "#ccc"; g.font = `${16 * dpr()}px "Share Tech Mono", monospace`; g.fillText(msg, 10 * dpr(), 26 * dpr());
 }
 function drawViz() { if (cur && cur.ab && $("spec").clientWidth) { drawWave(cur.ab, cur.i); drawSpec(cur.ab, C.sr[cur.i]); } }
 function drawWave(ab, i) {
@@ -394,9 +394,9 @@ function drawSpec(ab, sr) {
   og.putImageData(img, 0, 0);
   const cv = $("spec"), g = fit(cv), W = cv.width, H = cv.height;
   g.imageSmoothingEnabled = true; g.drawImage(off, 0, 0, W, H);
-  g.fillStyle = "rgba(255,255,255,0.8)"; g.font = `${11 * dpr()}px "Share Tech Mono", monospace`;
+  g.fillStyle = "rgba(255,255,255,0.8)"; g.font = `${15 * dpr()}px "Share Tech Mono", monospace`;
   const fTop = (nb / nfft) * rate;
-  for (let k = 2; k * 1000 < fTop; k += 2) g.fillText(`${k}k`, 3 * dpr(), H - ((k * 1000) / fTop) * H + 4 * dpr());
+  for (let k = 2; k * 1000 < fTop; k += 2) g.fillText(`${k}k`, 4 * dpr(), H - ((k * 1000) / fTop) * H + 5 * dpr());
 }
 function tick() {
   if (!A.duration || !isFinite(A.duration)) return;

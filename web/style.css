@@ -122,9 +122,6 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
   margin: 0; font-family: var(--pixel); font-size: clamp(40px, 12vw, 60px); font-weight: 700; line-height: 1; letter-spacing: 0.01em;
   text-shadow: 0 4px 0 var(--shadow);
 }
-.sub { margin: 12px 0 0; color: var(--ink-2); }
-.sub-2 { font-size: 16px; }
-.nw { white-space: nowrap; }
 #hero { display: block; width: 100%; aspect-ratio: 96 / 30; margin: 22px 0 6px; image-rendering: pixelated; }
 .menu { display: flex; flex-direction: column; gap: 10px; margin: 20px 0 8px; text-align: left; }
 .item {

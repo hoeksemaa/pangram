@@ -28,7 +28,7 @@ const NUM = [
   { g: "loudness", k: "loud_range_db", name: "dynamics", unit: "dB", dec: 1, tip: "10th to 90th percentile of 20 ms frame levels in speech" },
 ];
 // The AI systems in plain words (dataset README). TTS = text-to-speech; VC = voice conversion.
-const SYSTEMS = {
+export const SYSTEMS = {
   A01: "text-to-speech, neural waveform", A02: "text-to-speech, vocoder", A03: "text-to-speech, vocoder",
   A04: "text-to-speech, waveform concatenation", A05: "voice conversion, vocoder", A06: "voice conversion, spectral filtering",
   A07: "text-to-speech, vocoder + GAN", A08: "text-to-speech, neural waveform", A09: "text-to-speech, vocoder",
@@ -38,7 +38,7 @@ const SYSTEMS = {
   A19: "voice conversion, spectral filtering", enroll: "speaker enrollment, not labeled",
 };
 // How each kind of AI system makes speech, in one line.
-const KIND = {
+export const KIND = {
   "text-to-speech": "Text-to-speech: reads typed text aloud in the target voice.",
   "voice conversion": "Voice conversion: turns a real recording of another person into the target voice.",
   "TTS + VC": "Text-to-speech, then voice conversion into the target voice.",

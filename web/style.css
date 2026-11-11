@@ -265,6 +265,13 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 .m-res th, .m-res td { padding: 6px 4px; text-align: right; border-bottom: 1px solid var(--edge); }
 .m-res th { color: var(--ink-2); font-weight: 400; font-size: 15px; }
 .m-res th:first-child, .m-res td:first-child { text-align: left; }
+.m-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.m-h h3 { margin: 0; }
+.sys-info { margin-bottom: 12px; padding: 10px; background: var(--panel-2); border: 2px solid var(--edge); border-radius: 6px; }
+.sys-info p:first-child { margin-top: 0; }
+.sys-info dl { display: grid; grid-template-columns: 44px 1fr; gap: 4px 8px; margin: 10px 0 0; font-size: 16px; }
+.sys-info dt { color: var(--gold); }
+.sys-info dd { margin: 0; }
 .bars { display: grid; gap: 6px; margin-top: 4px; }
 .bar-row { display: grid; grid-template-columns: 44px 1fr 64px; align-items: center; gap: 8px; font-size: 16px; font-variant-numeric: tabular-nums; }
 .bt { height: 12px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }

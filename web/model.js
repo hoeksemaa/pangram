@@ -186,7 +186,7 @@ export async function showTry() {
   if (!d || !d.models.length) { $("t-slot").innerHTML = `<p class="t-empty">No trained model yet.</p>`; return; }
   if (tryReady) return;
   tryReady = true;
-  $("t-model").innerHTML = d.models.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join("");
+  $("t-model").innerHTML = d.models.map((m) => `<option value="${m.id}">${esc(m.name)} · ${m.mb} MB</option>`).join("");
   $("t-model").addEventListener("change", () => cur && run());
   const groups = [["train", "Training data (seen)"], ["wild", "In the wild (never heard)"]];
   $("t-clips").innerHTML = groups.map(([g, title]) => `<p class="t-grp">${title}</p><div class="t-grid">${d.clips.filter((c) => c.group === g).map((c) => `

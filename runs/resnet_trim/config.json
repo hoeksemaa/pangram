@@ -1,0 +1,17 @@
+{
+ "name": "resnet_trim",
+ "arch": "resnet",
+ "trim": "vad",
+ "loss": "ce",
+ "seed": 0,
+ "crop": 3.0,
+ "batch": 64,
+ "lr": 0.0003,
+ "max_epochs": 40,
+ "max_min": 60,
+ "patience": 6,
+ "checks_per_epoch": 2,
+ "limit": 0,
+ "overfit": false,
+ "no_test": false
+}

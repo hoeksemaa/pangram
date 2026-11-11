@@ -1,6 +1,8 @@
 // Model and Try tabs. Data: models.json (scripts/build_models.py).
 // Try runs the exported model (models/<run>.onnx) in the browser with ONNX Runtime Web:
 // audio at 16 kHz -> 3 s windows (a short clip is repeated) -> AI score per window -> mean.
+import { KIND, SYSTEMS } from "./explorer.js";
+
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const pct = (x, d = 1) => (x == null ? "–" : `${(x * 100).toFixed(d)}%`);
@@ -33,7 +35,7 @@ export async function showModel() {
 
 function renderModel(d, m) {
   const r = m.results, g = m.fpr_per_gender;
-  const seen = ["A16", "A19"]; // A16 = A04 and A19 = A06: the same systems as in training
+  const SAME = { A16: "A04", A19: "A06" }; // the same systems as in training
   const va = m.curves.validation, minV = Math.min(...va.map((p) => p[1]));
   const sys = Object.entries(m.per_system);
   const maxE = Math.max(...sys.map(([, v]) => v), 0.01);
@@ -65,12 +67,17 @@ function renderModel(d, m) {
     </section>
 
     <section class="panel m-card">
-      <h3>Test error by AI system</h3>
+      <div class="m-h"><h3>Test error by AI system</h3>
+        <button id="m-sys-i" class="info-btn" aria-expanded="false" aria-controls="m-sys-info" title="what A07–A19 are" aria-label="what the AI systems are">i</button></div>
+      <div id="m-sys-info" class="sys-info" hidden>
+        <p>The test split's AI systems (ASVspoof 2019 LA). Each makes fake speech of the same 67 speakers.</p>
+        ${Object.entries(KIND).map(([k, v]) => `<p class="m-dim">${k === "TTS + VC" ? "TTS + VC: " : ""}${esc(v)}</p>`).join("")}
+        <dl>${sys.map(([s]) => `<dt>${s}</dt><dd>${esc(SYSTEMS[s] || "")}${SAME[s] ? ` (same system as ${SAME[s]}, which is in training)` : ""}</dd>`).join("")}</dl>
+      </div>
       <div class="bars">${sys.map(([s, v]) => `
         <div class="bar-row" title="${s}: EER ${pct(v)}"><span class="bl">${s}</span>
           <span class="bt"><span style="width:${(v / maxE) * 100}%"></span></span><span class="bv">${pct(v)}</span></div>`).join("")}
       </div>
-      <p class="m-dim">${seen.join(" and ")} reuse systems from training; the rest are new.</p>
     </section>
 
     ${d.baselines.length ? `<section class="panel m-card">
@@ -82,6 +89,11 @@ function renderModel(d, m) {
       </table>
     </section>` : ""}`;
   lossChart($("m-chart"), m);
+  $("m-sys-i").onclick = () => {
+    const open = $("m-sys-info").hidden;
+    $("m-sys-info").hidden = !open;
+    $("m-sys-i").setAttribute("aria-expanded", open);
+  };
 }
 
 // One axis (loss). Train: bucket means as a line. Validation: line + markers at each check.

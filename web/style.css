@@ -162,7 +162,6 @@ select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 0; }
 }
 .chip.h { background: var(--human); border-color: var(--human); color: #fff; }
 .chip.a { background: var(--ai); border-color: var(--ai); color: #fff; }
-.chip .dim { margin-left: 6px; font-size: inherit; font-weight: 400; }
 #filters { display: none; flex-wrap: wrap; gap: 8px; padding-top: 10px; }
 #data.show-filters #filters { display: flex; }
 #filters select { flex: 1 1 40%; }

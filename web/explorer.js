@@ -166,9 +166,12 @@ function apply() {
 function updateStats() {
   const [h, a] = S.nhna;
   const n = (x) => x.toLocaleString();
-  const shown = S.rows.length === N ? n(N) : `${n(S.rows.length)} / ${n(N)}`;
-  const full = doc.sample ? ` <span class="dim">(${n(doc.sample.n_total)} in full set)</span>` : "";
-  $("stats").innerHTML = `<span class="chip" title="clips shown">${shown} data points${full}</span>`
+  const k = (x) => (x >= 10000 ? `${Math.round(x / 1000)}k` : n(x));
+  const filtered = S.rows.length < N, total = doc.sample ? doc.sample.n_total : 0;
+  // "560 of 122k clips" (sample of the full set) or "42 of 560 clips" (filters on)
+  const of = filtered ? N : total;
+  const tip = filtered ? "clips that pass the filters" : `a sample of the ${n(total)} clips in ASVspoof 2019 LA`;
+  $("stats").innerHTML = `<span class="chip" title="${tip}">${n(S.rows.length)}${of ? ` of ${k(of)}` : ""} clips</span>`
     + `<span class="chip h" title="human clips shown">${n(h)} human</span><span class="chip a" title="AI clips shown">${n(a)} AI</span>`;
 }
 

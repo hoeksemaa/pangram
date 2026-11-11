@@ -75,7 +75,10 @@
       <div id="tbody"><div id="spacer"></div><div id="rows"></div></div>
     </section>
     <section id="right" class="panel">
-      <div id="clip-head"></div>
+      <div class="clip-top">
+        <div id="clip-head"></div>
+        <button id="b-info" class="info-btn" aria-expanded="false" aria-controls="clip-info" title="clip details (i)" aria-label="clip details">i</button>
+      </div>
       <p id="text" hidden></p>
       <div id="viz">
         <canvas id="wave"></canvas>
@@ -90,6 +93,7 @@
         <button id="b-rand" class="btn" title="random clip in the current filter (r)" aria-label="random"><span data-pix="dice"></span></button>
         <label class="tog" title="go to the next clip when one ends (c)"><input id="b-chain" type="checkbox" autocomplete="off"><span>chain</span></label>
       </div>
+      <div id="clip-info" hidden></div>
       <audio id="audio" preload="auto"></audio>
     </section>
   </div>

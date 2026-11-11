@@ -37,6 +37,13 @@ const SYSTEMS = {
   A16: "text-to-speech, waveform concatenation", A17: "voice conversion, waveform filtering", A18: "voice conversion, vocoder",
   A19: "voice conversion, spectral filtering", enroll: "speaker enrollment, not labeled",
 };
+// How each kind of AI system makes speech, in one line.
+const KIND = {
+  "text-to-speech": "Text-to-speech: reads typed text aloud in the target voice.",
+  "voice conversion": "Voice conversion: turns a real recording of another person into the target voice.",
+  "TTS + VC": "Text-to-speech, then voice conversion into the target voice.",
+};
+const SPLIT_NAME = { train: "train", dev: "validation", eval: "test" };
 const sysName = (v) => (v === "-" ? "human" : SYSTEMS[v] ? `${v} · ${SYSTEMS[v]}` : v);
 const labelName = (v) => (v === "ai" ? "AI" : v === "?" ? "unlabeled" : v);
 const CAT_KEYS = ["split", "label", "system", "gender"];
@@ -293,7 +300,37 @@ function select(p, autoplay = true) {
   if (autoplay) A.play().catch(() => {});
   loadViz(i, src, t);
 }
+function infoHTML(i) {
+  const L = cat.label[C.label[i]], sys = cat.system[C.system[i]];
+  const row = (k, v) => `<span class="k">${esc(k)}</span><span>${v}</span>`;
+  let html;
+  if (L === "human") {
+    html = `<div class="method"><span class="k">AI method</span><b>none: a real person</b><span class="dim">A studio recording from the VCTK corpus.</span></div>`;
+  } else {
+    const desc = SYSTEMS[sys] || "";
+    const kind = Object.keys(KIND).find((k) => desc.startsWith(k));
+    html = `<div class="method"><span class="k">AI method</span><b>${esc(sys)} · ${esc(desc)}</b>`
+      + `${kind ? `<span class="dim">${esc(KIND[kind])}</span>` : ""}</div>`;
+  }
+  const spk = doc.cols.speaker ? cat.speaker[doc.cols.speaker[i]] : "?";
+  html += `<div class="grid">`
+    + row("voice of", `speaker ${esc(spk)}${cat.gender[C.gender[i]] !== "?" ? ` (${esc(cat.gender[C.gender[i]])})` : ""}`)
+    + row("split", esc(SPLIT_NAME[cat.split[C.split[i]]] || cat.split[C.split[i]]))
+    + row("dataset id", esc(ids[i]));
+  let g = "";
+  for (const f of NUM) {
+    if (f.g !== g) { g = f.g; html += `<span class="g">${esc(g)}</span>`; }
+    const v = C[f.k][i];
+    html += row(f.name, v === v ? `${v.toFixed(f.dec)}${f.unit ? ` ${esc(f.unit)}` : ""}` : "–");
+  }
+  return html + `</div>`;
+}
+function setInfo(open) {
+  $("b-info").setAttribute("aria-expanded", open);
+  $("clip-info").hidden = !open;
+}
 function showClip(i) {
+  $("clip-info").innerHTML = infoHTML(i);
   const L = cat.label[C.label[i]];
   $("clip-head").innerHTML = `<span class="badge ${esc(L)}">${esc(labelName(L))}</span><b title="${ids[i]}">${num(i)}</b>`;
   const text = texts && texts[ids[i]];
@@ -439,6 +476,7 @@ function bind() {
   $("b-next").addEventListener("click", () => select(S.sel + 1));
   $("b-play").addEventListener("click", togglePlay);
   $("b-rand").addEventListener("click", randomPick);
+  $("b-info").addEventListener("click", () => setInfo($("clip-info").hidden));
   $("viz").addEventListener("click", (e) => {
     const r = $("viz").getBoundingClientRect();
     if (A.duration && isFinite(A.duration)) { A.currentTime = ((e.clientX - r.left) / r.width) * A.duration; tick(); }
@@ -459,7 +497,7 @@ function bind() {
       j: () => select(S.sel + 1), ArrowDown: () => select(S.sel + 1),
       k: () => select(S.sel - 1), ArrowUp: () => select(S.sel - 1),
       " ": togglePlay, r: randomPick, "/": () => $("f-q").focus(),
-      c: () => $("b-chain").click(),
+      c: () => $("b-chain").click(), i: () => $("b-info").click(),
     };
     if (keys[e.key]) { e.preventDefault(); keys[e.key](); }
   });

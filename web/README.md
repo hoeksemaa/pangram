@@ -1,6 +1,6 @@
 # Web app
 
-**Audio Detector**, a phone-first research site: home screen and four tabs. **Data** (clips and player) and **Stats** (feature histograms and counts) explore ASVspoof 2019 LA. **Model** and **Try** wait for a model. Home links: **See source** (dataset download page) and **John**.
+**Audio Detector**, a phone-first research site: home screen and four tabs. **Data** (clips and player) and **Stats** (feature histograms and counts) explore ASVspoof 2019 LA. **Model** and **Try** wait for a model. Home links: **See data** (dataset download page), **See source** (this repo on GitHub), and **John**.
 
 ```
 uv run scripts/build_index.py   # once: labels + auditory features -> data/index/

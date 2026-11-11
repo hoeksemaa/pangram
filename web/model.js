@@ -122,7 +122,7 @@ function lossChart(el, m) {
 
 // ---------- Try tab ----------
 let cur = null; // { name, label?, audio: Float32Array, url }
-let ortP = null, recState = null;
+let ortP = null, recState = null, starting = false;
 const sessions = {};
 
 function loadOrt() {
@@ -192,7 +192,7 @@ export async function showTry() {
   $("t-clips").innerHTML = groups.map(([g, title]) => `<p class="t-grp">${title}</p><div class="t-grid">${d.clips.filter((c) => c.group === g).map((c) => `
     <button class="t-tile" data-id="${c.id}"><span class="lab ${c.label === "AI" ? "ai" : "human"}">${c.label}</span><span>${esc(c.name)}</span></button>`).join("")}</div>`).join("");
   bindDrag(d);
-  $("t-rec").addEventListener("click", () => (recState ? stopRec() : startRec(d)));
+  $("t-rec").addEventListener("click", () => { if (recState) stopRec(); else if (!starting) startRec(d); });
   loadOrt().catch(() => {}); // start the download early
 }
 
@@ -202,6 +202,7 @@ function bindDrag(d) {
   const over = (e) => { const r = slot.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; };
   $("t-clips").addEventListener("pointerdown", (e) => {
     const t = e.target.closest(".t-tile"); if (!t) return;
+    stopRec(true); // picking a clip ends a recording at once
     drag = { t, x0: e.clientX, y0: e.clientY, ghost: null };
     try { t.setPointerCapture(e.pointerId); } catch { /* fine */ }
   });
@@ -224,9 +225,14 @@ function bindDrag(d) {
   };
   $("t-clips").addEventListener("pointerup", (e) => end(e, false));
   $("t-clips").addEventListener("pointercancel", (e) => end(e, true));
+  $("t-clips").addEventListener("click", (e) => { // keyboard (Enter / Space) only; pointers use pointerup
+    const t = e.target.closest(".t-tile");
+    if (t && e.detail === 0) loadClip(d.clips.find((c) => c.id === t.dataset.id));
+  });
 }
 
 async function loadClip(c) {
+  stopRec(true);
   setSlot(`<p class="t-empty">Loading ${esc(c.name)}…</p>`);
   try {
     const buf = await (await fetch(`try/${c.id}.wav`)).arrayBuffer();
@@ -237,43 +243,133 @@ async function loadClip(c) {
   } catch (err) { setSlot(`<p class="t-empty">Could not load the clip: ${esc(err.message)}</p>`); }
 }
 
+// Recording: raw samples straight from the mic, not a compressed MediaRecorder file (the models never heard
+// codec audio). Tested: test clips played into a fake mic over a quiet noise floor keep their verdicts.
+// An AnalyserNode drives the live waveform.
+const MAX_S = 8, COLS_PER_S = 25; // waveform: one column per 40 ms, 8 s across
 async function startRec(d) {
+  const ac = new AudioContext(); // made inside the tap, so Safari lets it run
+  starting = true;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-    const rec = new MediaRecorder(stream), chunks = [];
-    rec.ondataavailable = (e) => chunks.push(e.data);
-    rec.onstop = async () => {
-      stream.getTracks().forEach((t) => t.stop());
-      const blob = new Blob(chunks, { type: rec.mimeType });
-      try {
-        const x = prepRecording(await decode16k(await blob.arrayBuffer()), d.target_rms_db);
-        if (!x) { setSlot(`<p class="t-empty">No speech heard. Try again, closer to the mic.</p>`); return; }
-        document.querySelectorAll(".t-tile").forEach((t) => t.classList.remove("on"));
-        cur = { name: "Your recording", label: null, sub: `${(x.length / SR).toFixed(1)} s after trimming silence`, audio: x, url: URL.createObjectURL(blob) };
-        run();
-      } catch (err) { setSlot(`<p class="t-empty">Could not read the recording: ${esc(err.message)}</p>`); }
-    };
-    const t0 = Date.now();
-    recState = { rec, timer: setInterval(() => {
-      const s = (Date.now() - t0) / 1000;
-      $("t-rec-txt").textContent = `Stop (${s.toFixed(0)} s)`;
-      if (s >= 8) stopRec();
-    }, 200) };
-    rec.start();
+    const st = { d, stream, ac, pcm: [], raf: 0, timer: 0, t0: 0, last: -1, cols: new Float32Array(MAX_S * COLS_PER_S) };
+    const src = ac.createMediaStreamSource(stream), an = ac.createAnalyser(), proc = ac.createScriptProcessor(4096, 1, 1);
+    an.fftSize = 2048;
+    proc.onaudioprocess = (e) => { if (recState === st) st.pcm.push(new Float32Array(e.inputBuffer.getChannelData(0))); };
+    src.connect(an);
+    src.connect(proc);
+    proc.connect(ac.destination); // a processor only runs when connected; its output stays silent
+    st.proc = proc;
+    await ac.resume();
+    setSlot(`<p class="t-rec-note">Recording… speak for 2–8 seconds.</p><canvas id="t-live" aria-label="live waveform of the recording"></canvas>`);
+    document.querySelectorAll(".t-tile").forEach((t) => t.classList.remove("on"));
+    st.t0 = performance.now();
+    st.timer = setTimeout(() => recState === st && stopRec(), MAX_S * 1000); // also when the tab is hidden
+    recState = st;
+    starting = false;
     $("t-rec").classList.add("on");
-    $("t-rec-txt").textContent = "Stop (0 s)";
-    setSlot(`<p class="t-empty">Recording… speak for 2–8 seconds.</p>`);
+    const buf = new Float32Array(an.fftSize);
+    const frame = () => {
+      if (recState !== st) return;
+      const sec = (performance.now() - st.t0) / 1000;
+      an.getFloatTimeDomainData(buf);
+      let e = 0;
+      for (const v of buf) e += v * v;
+      const rms = Math.sqrt(e / buf.length);
+      const k = Math.min(st.cols.length - 1, Math.floor(sec * COLS_PER_S));
+      for (let i = st.last + 1; i < k; i++) st.cols[i] = rms; // frames can skip columns
+      st.cols[k] = Math.max(st.cols[k], rms);
+      st.last = k;
+      drawLive($("t-live"), st.cols, Math.min(sec, MAX_S));
+      $("t-rec-txt").textContent = `Stop (${Math.min(sec, MAX_S).toFixed(1)} s)`;
+      st.raf = requestAnimationFrame(frame);
+    };
+    frame();
   } catch (err) {
+    starting = false;
+    ac.close().catch(() => {});
     setSlot(`<p class="t-empty">The microphone is off (${esc(err.message)}). Allow it for this site, then try again.</p>`);
   }
 }
-function stopRec() {
-  if (!recState) return;
-  clearInterval(recState.timer);
-  if (recState.rec.state !== "inactive") recState.rec.stop();
+// discard = true: drop the audio (a clip was picked, or the tab closed).
+function stopRec(discard = false) {
+  const st = recState;
+  if (!st) return;
   recState = null;
+  cancelAnimationFrame(st.raf);
+  clearTimeout(st.timer);
+  st.proc.disconnect();
+  st.stream.getTracks().forEach((t) => t.stop());
   $("t-rec").classList.remove("on");
   $("t-rec-txt").textContent = "Record";
+  if (!discard) finishRec(st);
+  else st.ac.close().catch(() => {});
+}
+async function finishRec(st) {
+  try {
+    const n = st.pcm.reduce((a, b) => a + b.length, 0), raw = new Float32Array(n);
+    let o = 0;
+    for (const b of st.pcm) { raw.set(b, o); o += b.length; }
+    const sr = st.ac.sampleRate;
+    st.ac.close().catch(() => {});
+    const x = n ? prepRecording(await resample16k(raw, sr), st.d.target_rms_db) : null;
+    if (!x) { setSlot(`<p class="t-empty">No speech heard. Try again, closer to the mic.</p>`); return; }
+    cur = { name: "Your recording", label: null, sub: `${(x.length / SR).toFixed(1)} s after trimming silence`, audio: x, url: wavURL(x) };
+    run();
+  } catch (err) { setSlot(`<p class="t-empty">Could not read the recording: ${esc(err.message)}</p>`); }
+}
+async function resample16k(x, sr) {
+  if (sr === SR) return x;
+  const oc = new OfflineAudioContext(1, Math.ceil((x.length * SR) / sr), SR);
+  const b = oc.createBuffer(1, x.length, sr);
+  b.copyToChannel(x, 0);
+  const s = oc.createBufferSource();
+  s.buffer = b;
+  s.connect(oc.destination);
+  s.start();
+  return (await oc.startRendering()).getChannelData(0);
+}
+// 16 kHz mono 16-bit WAV, so "play" gives exactly what the model heard.
+function wavURL(x) {
+  const v = new DataView(new ArrayBuffer(44 + x.length * 2));
+  const w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  w(0, "RIFF"); v.setUint32(4, 36 + x.length * 2, true); w(8, "WAVE"); w(12, "fmt ");
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, SR, true);
+  v.setUint32(28, SR * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, x.length * 2, true);
+  for (let i = 0; i < x.length; i++) v.setInt16(44 + i * 2, Math.round(Math.max(-1, Math.min(1, x[i])) * 32767), true);
+  return URL.createObjectURL(new Blob([v.buffer], { type: "audio/wav" }));
+}
+// Live waveform: loudness (RMS) per 40 ms column on a 0-8 s axis, one mark per second, playhead at "now".
+function drawLive(cv, cols, sec) {
+  if (!cv) return;
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight, AX = 22;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  const mid = (H - AX) / 2, cw = W / cols.length;
+  g.font = `15px ${css("--mono")}`;
+  g.textBaseline = "alphabetic";
+  for (let t = 0; t <= MAX_S; t++) {
+    const x = Math.min(W - 1, Math.round((t / MAX_S) * W));
+    g.fillStyle = css("--edge");
+    g.fillRect(x, 0, 1, H - AX);
+    g.fillStyle = css("--ink-2");
+    g.textAlign = t === 0 ? "left" : t === MAX_S ? "right" : "center";
+    g.fillText(t === MAX_S ? `${t} s` : String(t), x, H - 5);
+  }
+  g.fillStyle = css("--edge");
+  g.fillRect(0, Math.round(mid), W, 1);
+  const level = (r) => Math.max(0, Math.min(1, (20 * Math.log10(r + 1e-6) + 60) / 54)); // -60..-6 dBFS RMS
+  g.fillStyle = css("--gold");
+  const n = Math.min(cols.length, Math.floor(sec * COLS_PER_S) + 1);
+  for (let i = 0; i < n; i++) {
+    const a = Math.max(1, level(cols[i]) * (mid - 3));
+    g.fillRect(i * cw, mid - a, Math.max(1, cw - 1), 2 * a);
+  }
+  g.fillStyle = css("--ink");
+  g.fillRect(Math.min(W - 2, (sec / MAX_S) * W), 0, 2, H - AX);
 }
 
 function setSlot(html) { $("t-slot").innerHTML = html; }
@@ -308,4 +404,4 @@ function bindPlay(c) {
   A.onplay = () => { const x = $("t-slot").querySelector(".t-play"); if (x) x.textContent = "❚❚"; };
   A.onpause = A.onended = () => { const x = $("t-slot").querySelector(".t-play"); if (x) x.textContent = "▶"; };
 }
-export function leaveTry() { $("t-audio").pause(); stopRec(); }
+export function leaveTry() { $("t-audio").pause(); stopRec(true); }
